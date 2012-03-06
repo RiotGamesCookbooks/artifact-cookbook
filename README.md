@@ -20,24 +20,24 @@ Action  | Description                 | Default
 deploy  | Deploy the artifact package | Yes
 
 ### Attributes
-Attribute           | Description                                                 |Type     | Default
----------           |-------------                                                |-----    |--------
-artifact_name       | the ruby version and patch level you wish to install        | String  | name
-artifact_url        | install even if this version is already present (reinstall) | String  |
-deploy_to           |                                                             | String  |
-version             |                                                             | String  |
-owner               |                                                             | String  |
-group               |                                                             | String  |
-environment         |                                                             | Hash    | Hash.new
-symlinks            |                                                             | Hash    | { "system" => "public/system", "pids" => "tmp/pids", "log" => "log" }
-shared_directories  |                                                             | Array   | %w{ log pids }
-before_migrate      |                                                             | Proc    |
-after_migrate       |                                                             | Proc    |
-migrate             |                                                             | Proc    |
-restart_proc        |                                                             | Proc    |
-force               |                                                             | Boolean | false
-should_migrate      |                                                             | Boolean | false
-keep                |                                                             | Integer | 2
+Attribute           | Description                                                                          |Type     | Default
+---------           |-------------                                                                         |-----    |--------
+artifact_name       | Name of the artifact package to deploy                                               | String  | name
+artifact_url        | URL of the artifact package to download                                              | String  |
+deploy_to           | Deploy directory where releases are stored and linked                                | String  |
+version             | Version of the artifact being deployed                                               | String  |
+owner               | Owner of files created and modified                                                  | String  |
+group               | Group of files created and modified                                                  | String  |
+environment         | An environment hash used by resources within the provider                            | Hash    | Hash.new
+symlinks            | A hash that maps files in the shared directory to their paths in the current release | Hash    | { "system" => "public/system", "pids" => "tmp/pids", "log" => "log" }
+shared_directories  | Directories to be created in the shared folder                                       | Array   | %w{ log pids }
+before_migrate      | A proc containing resources to be executed before the migration Proc                 | Proc    |
+after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
+migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
+restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
+force               | Forcefully deploy an artifact even if the artifact has already been deployed         | Boolean | false
+should_migrate      | Notify the provider if it should perform application migrations                      | Boolean | false
+keep                | Specify a number of artifacts deployments to keep on disk                            | Integer | 2
 
 ### Examples
 
