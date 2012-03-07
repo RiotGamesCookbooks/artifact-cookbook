@@ -103,7 +103,9 @@ keep                | Specify a number of artifacts deployments to keep on disk 
 # Releasing
 
 1. Install the prerequisite gems
+    
     $ gem install chef
+    
     $ gem install thor
 
 2. Increment the version number in the metadata.rb file
