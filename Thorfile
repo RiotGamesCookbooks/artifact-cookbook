@@ -3,17 +3,19 @@
 require 'chef/cookbook/metadata'
 
 class Default < Thor
+  class_option :verbose, :type => :boolean, :aliases => "-v", :default => false
+
   desc "release", "Create tag v1.6.2 and build and push twitter-1.6.2.gem to Rubygems"
   method_option :knife_config, :type => :string, :aliases => "-c", :desc => "", :default => "~/.chef/knife.rb"
   def release
-    unless clean?
-      say "There are files that need to be committed first.", :red
-      exit 1
-    end
+    # unless clean?
+    #   say "There are files that need to be committed first.", :red
+    #   exit 1
+    # end
 
-    tag_version {
-      publish_cookbook(options[:knife_config])
-    }
+    #tag_version {
+      publish_cookbook(options)
+    #}
   end
 
   private
@@ -28,8 +30,10 @@ class Default < Thor
       metadata.version
     end
 
-    def publish_cookbook(config)
-      sh "knife cookbook site share artifact \"Utilities\" -o #{source_root.join("..")} -c #{config}"
+    def publish_cookbook(options)
+      cmd = "knife cookbook site share artifact \"Utilities\" -o #{source_root.join("..")} -c #{options[:knife_config]}"
+      cmd << " -V" if options[:verbose]
+      system cmd
     end
 
     def tag_version
