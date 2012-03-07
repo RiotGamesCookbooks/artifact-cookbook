@@ -8,14 +8,14 @@ class Default < Thor
   desc "release", "Create tag v1.6.2 and build and push twitter-1.6.2.gem to Rubygems"
   method_option :knife_config, :type => :string, :aliases => "-c", :desc => "", :default => "~/.chef/knife.rb"
   def release
-    # unless clean?
-    #   say "There are files that need to be committed first.", :red
-    #   exit 1
-    # end
+    unless clean?
+      say "There are files that need to be committed first.", :red
+      exit 1
+    end
 
-    #tag_version {
+    tag_version {
       publish_cookbook(options)
-    #}
+    }
   end
 
   private
