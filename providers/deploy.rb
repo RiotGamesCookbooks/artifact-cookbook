@@ -69,15 +69,15 @@ action :deploy do
     end
   end
 
-  recipe_eval(&new_resource.before_symlink)
+  recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
 
   recipe_eval do
     symlink_it_up!
   end
 
-  recipe_eval(&new_resource.before_migrate)
+  recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
   recipe_eval(&new_resource.migrate) if new_resource.should_migrate
-  recipe_eval(&new_resource.after_migrate)
+  recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
   
   recipe_eval do
     link new_resource.current_path do
