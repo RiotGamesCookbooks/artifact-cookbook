@@ -67,7 +67,11 @@ action :deploy do
       user new_resource.owner
       group new_resource.group
     end
+  end
 
+  recipe_eval(&new_resource.before_symlink)
+
+  recipe_eval do
     symlink_it_up!
   end
 
