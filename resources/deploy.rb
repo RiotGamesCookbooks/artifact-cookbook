@@ -35,6 +35,7 @@ attribute :before_migrate, :kind_of     => Proc
 attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc
 attribute :restart_proc, :kind_of       => Proc
+attribute :before_symlink, :kind_of     => Proc
 attribute :force, :kind_of              => [ TrueClass, FalseClass ], :default => false
 attribute :should_migrate, :kind_of     => [ TrueClass, FalseClass ], :default => false
 attribute :keep, :kind_of               => Integer, :default => 2
