@@ -35,6 +35,7 @@ before_migrate      | A proc containing resources to be executed before the migr
 after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
 migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
 restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
+before_symlink      | A proc containing resources to be executed before the symlinks are created           | Proc    |
 force               | Forcefully deploy an artifact even if the artifact has already been deployed         | Boolean | false
 should_migrate      | Notify the provider if it should perform application migrations                      | Boolean | false
 keep                | Specify a number of artifacts deployments to keep on disk                            | Integer | 2
