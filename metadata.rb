@@ -3,7 +3,7 @@ maintainer       "Riot Games"
 maintainer_email "jamie@vialstudios.com"
 license          "All rights reserved"
 description      "Provides your cookbooks with the Artifact Deploy LWRP"
-version          "0.9.3"
+version          "0.9.4"
 
 %w{ centos redhat fedora }.each do |os|
   supports os
