@@ -85,7 +85,7 @@ action :deploy do
     end
   end
 
-  recipe_eval(&new_resource.restart_proc)
+  recipe_eval(&new_resource.restart_proc) if new_resource.restart_proc
 
   recipe_eval { write_completion_token }
 end
