@@ -59,7 +59,7 @@ action :deploy do
       group new_resource.group
       backup false
 
-      action :create_if_missing
+      action :create
     end
 
     execute "extract_artifact" do
