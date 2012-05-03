@@ -30,7 +30,7 @@ attribute :owner, :kind_of              => String, :required => true, :regex => 
 attribute :group, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :environment, :kind_of        => Hash, :default => Hash.new
 attribute :symlinks, :kind_of           => Hash, :default => { "system" => "public/system", "pids" => "tmp/pids", "log" => "log" }
-attribute :shared_directories, :kind_of => Array, :default => %w{ log pids }
+attribute :shared_directories, :kind_of => Array, :default => %w{ system pids logs }
 attribute :before_migrate, :kind_of     => Proc
 attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc
