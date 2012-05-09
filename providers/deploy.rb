@@ -88,6 +88,8 @@ action :deploy do
   recipe_eval(&new_resource.restart_proc) if new_resource.restart_proc
 
   recipe_eval { write_completion_token }
+
+  new_resource.updated_by_last_action(true)
 end
 
 private
