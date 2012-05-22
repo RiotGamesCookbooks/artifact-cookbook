@@ -158,8 +158,13 @@ private
 
       link "#{new_resource.release_path}/#{value}" do
         to "#{new_resource.shared_path}/#{key}"
-        owner new_resource.owner
-        group new_resource.group
+        # Disable setting the owner and group of the Link resource
+        # when running Chef 0.10.10.
+        # http://tickets.opscode.com/browse/CHEF-3102
+        unless node[:chef_packages][:chef][:version] == "0.10.10"
+          owner new_resource.owner
+          group new_resource.group
+        end
       end
     end
   end
