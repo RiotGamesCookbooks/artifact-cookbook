@@ -18,6 +18,7 @@
 # limitations under the License.
 #
 require 'pathname'
+require 'uri'
 
 attr_reader :release_path
 attr_reader :current_path
@@ -53,13 +54,21 @@ action :deploy do
     setup_deploy_directories!
     setup_shared_directories!
 
-    remote_file cached_tar_path do
-      source new_resource.artifact_url
-      owner new_resource.owner
-      group new_resource.group
-      backup false
+    if remote_file?(new_resource.artifact_url)
+      remote_file cached_tar_path do
+        source new_resource.artifact_url
+        owner new_resource.owner
+        group new_resource.group
+        backup false
 
-      action :create
+        action :create
+      end
+    else
+      file cached_tar_path do
+        content ::File.open(new_resource.artifact_url).read
+        owner new_resource.owner
+        group new_resource.group
+      end
     end
 
     execute "extract_artifact" do
@@ -195,4 +204,8 @@ private
     file completion_token_path do
       content release_path
     end
+  end
+
+  def remote_file?(url)
+    url =~ URI::ABS_URI
   end

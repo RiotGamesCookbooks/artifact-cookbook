@@ -23,7 +23,7 @@ require 'uri'
 actions :deploy
 
 attribute :artifact_name, :kind_of      => String, :required => true, :name_attribute => true
-attribute :artifact_url, :kind_of       => String, :required => true, :regex => URI.regexp(['http', 'https'])
+attribute :artifact_url, :kind_of       => String, :required => true
 attribute :deploy_to, :kind_of          => String, :required => true
 attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
