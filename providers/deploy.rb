@@ -63,12 +63,14 @@ action :deploy do
 
         action :create
       end
-    else
+    elsif ::File.exist?(new_resource.artifact_url)
       file cached_tar_path do
         content ::File.open(new_resource.artifact_url).read
         owner new_resource.owner
         group new_resource.group
       end
+    else
+      raise "Cannot retrieve artifact #{new_resource.artifact_url}! Please make sure the artifact exists in the specified location."
     end
 
     execute "extract_artifact" do
