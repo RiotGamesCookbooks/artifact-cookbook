@@ -23,7 +23,8 @@ require 'uri'
 actions :deploy
 
 attribute :artifact_name, :kind_of      => String, :required => true, :name_attribute => true
-attribute :artifact_url, :kind_of       => String, :required => true
+attribute :artifact_location, :kind_of  => String
+attribute :artifact_url, :kind_of       => String
 attribute :deploy_to, :kind_of          => String, :required => true
 attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
@@ -59,4 +60,9 @@ end
 
 def shared_path
   "#{self.deploy_to}/shared"
+end
+
+# This is to support deprecated attribute artifact_url.
+def artifact_location=(location)
+  @artifact_location = location
 end
