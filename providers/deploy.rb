@@ -31,8 +31,8 @@ attr_reader :cached_tar_path
 attr_reader :previous_versions
 
 def load_current_resource
-  # This is to support deprecated attribute artifact_url.
   if @new_resource.artifact_url
+    Chef::Log.warn "[artifact] 'artifact_url' is deprecated, please use 'artifact_location' instead."
     @new_resource.artifact_location = @new_resource.artifact_url
   end
 
