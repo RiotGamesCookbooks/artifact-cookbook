@@ -29,7 +29,7 @@ attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :group, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :environment, :kind_of        => Hash, :default => Hash.new
-attribute :symlinks, :kind_of           => Hash, :default => { "system" => "public/system", "pids" => "tmp/pids", "log" => "log" }
+attribute :symlinks, :kind_of           => Hash, :default => Hash.new
 attribute :shared_directories, :kind_of => Array, :default => %w{ system pids log }
 attribute :before_migrate, :kind_of     => Proc
 attribute :after_migrate, :kind_of      => Proc
