@@ -18,6 +18,7 @@
 # limitations under the License.
 #
 require 'pathname'
+require 'uri'
 
 attr_reader :release_path
 attr_reader :current_path
@@ -30,12 +31,17 @@ attr_reader :cached_tar_path
 attr_reader :previous_versions
 
 def load_current_resource
+  if @new_resource.artifact_url
+    Chef::Log.warn "[artifact] 'artifact_url' is deprecated, please use 'artifact_location' instead."
+    @new_resource.artifact_location = @new_resource.artifact_url
+  end
+
   @release_path           = @new_resource.release_path
   @current_path           = @new_resource.current_path
   @shared_path            = @new_resource.shared_path
   @artifact_root          = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
   @version_container_path = ::File.join(@artifact_root, @new_resource.version)
-  @artifact_filename      = ::File.basename(@new_resource.artifact_url)
+  @artifact_filename      = ::File.basename(@new_resource.artifact_location)
   @cached_tar_path        = ::File.join(@version_container_path, @artifact_filename)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
@@ -53,14 +59,7 @@ action :deploy do
     setup_deploy_directories!
     setup_shared_directories!
 
-    remote_file cached_tar_path do
-      source new_resource.artifact_url
-      owner new_resource.owner
-      group new_resource.group
-      backup false
-
-      action :create
-    end
+    retrieve_artifact!
 
     execute "extract_artifact" do
       command "tar xzf #{cached_tar_path} -C #{new_resource.release_path}"
@@ -195,4 +194,29 @@ private
     file completion_token_path do
       content release_path
     end
+  end
+
+  def retrieve_artifact!
+    if remote_file?(new_resource.artifact_location)
+      remote_file cached_tar_path do
+        source new_resource.artifact_location
+        owner new_resource.owner
+        group new_resource.group
+        backup false
+
+        action :create
+      end
+    elsif ::File.exist?(new_resource.artifact_location)
+      file cached_tar_path do
+        content ::File.open(new_resource.artifact_location).read
+        owner new_resource.owner
+        group new_resource.group
+      end
+    else
+      raise "Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
+    end
+  end
+
+  def remote_file?(url)
+    url =~ URI::ABS_URI
   end

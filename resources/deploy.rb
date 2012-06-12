@@ -23,7 +23,8 @@ require 'uri'
 actions :deploy
 
 attribute :artifact_name, :kind_of      => String, :required => true, :name_attribute => true
-attribute :artifact_url, :kind_of       => String, :required => true, :regex => URI.regexp(['http', 'https'])
+attribute :artifact_location, :kind_of  => String
+attribute :artifact_url, :kind_of       => String, :regex => URI.regexp(['http', 'https'])
 attribute :deploy_to, :kind_of          => String, :required => true
 attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
@@ -39,6 +40,9 @@ attribute :before_symlink, :kind_of     => Proc
 attribute :force, :kind_of              => [ TrueClass, FalseClass ], :default => false
 attribute :should_migrate, :kind_of     => [ TrueClass, FalseClass ], :default => false
 attribute :keep, :kind_of               => Integer, :default => 2
+
+# This is to support deprecated attribute artifact_url.
+attr_writer :artifact_location
 
 def initialize(*args)
   super
