@@ -41,6 +41,9 @@ attribute :force, :kind_of              => [ TrueClass, FalseClass ], :default =
 attribute :should_migrate, :kind_of     => [ TrueClass, FalseClass ], :default => false
 attribute :keep, :kind_of               => Integer, :default => 2
 
+# This is to support deprecated attribute artifact_url.
+attr_writer :artifact_location
+
 def initialize(*args)
   super
   @action = :deploy
@@ -60,9 +63,4 @@ end
 
 def shared_path
   "#{self.deploy_to}/shared"
-end
-
-# This is to support deprecated attribute artifact_url.
-def artifact_location=(location)
-  @artifact_location = location
 end
