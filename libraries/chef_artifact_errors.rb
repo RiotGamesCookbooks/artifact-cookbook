@@ -24,7 +24,7 @@ class Chef
       end
 
       def message
-        "[artifact] Unable to locate the Artifact data bag item '#{data_bag_key}' for your environment '#{environment}."
+        "[artifact] Unable to locate the Artifact data bag item '#{data_bag_key}' for your environment '#{environment}'."
       end
     end
   end
