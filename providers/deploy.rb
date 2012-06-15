@@ -25,9 +25,7 @@ attr_reader :current_path
 attr_reader :shared_path
 attr_reader :previous_release_path
 attr_reader :artifact_root
-attr_reader :artifact_filename
 attr_reader :version_container_path
-attr_reader :cached_tar_path
 attr_reader :previous_versions
 
 def load_current_resource
@@ -41,8 +39,6 @@ def load_current_resource
   @shared_path            = @new_resource.shared_path
   @artifact_root          = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
   @version_container_path = ::File.join(@artifact_root, @new_resource.version)
-  @artifact_filename      = ::File.basename(@new_resource.artifact_location)
-  @cached_tar_path        = ::File.join(@version_container_path, @artifact_filename)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
@@ -89,6 +85,22 @@ action :deploy do
   recipe_eval { write_completion_token }
 
   new_resource.updated_by_last_action(true)
+end
+
+def cached_tar_path
+  ::File.join(version_container_path, artifact_filename)
+end
+
+def artifact_filename
+  if from_nexus?(new_resource.artifact_location)
+    group_id, artifact_id, version, extension = new_resource.artifact_location.split(":")
+    unless extension
+      extension = "jar"
+    end
+    "#{artifact_id}-#{version}.#{extension}"
+  else
+    ::File.basename(new_resource.artifact_location)
+  end
 end
 
 private
@@ -197,26 +209,61 @@ private
   end
 
   def retrieve_artifact!
-    if remote_file?(new_resource.artifact_location)
-      remote_file cached_tar_path do
-        source new_resource.artifact_location
-        owner new_resource.owner
-        group new_resource.group
-        backup false
-
-        action :create
-      end
+    if from_http?(new_resource.artifact_location)
+      retrieve_from_http
+    elsif from_nexus?(new_resource.artifact_location)
+      retrieve_from_nexus
     elsif ::File.exist?(new_resource.artifact_location)
-      file cached_tar_path do
-        content ::File.open(new_resource.artifact_location).read
-        owner new_resource.owner
-        group new_resource.group
-      end
+      retrieve_from_local
     else
       raise "Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
     end
   end
 
-  def remote_file?(url)
-    url =~ URI::ABS_URI
+  def from_http?(location)
+    location =~ URI::regexp(['http', 'https'])
+  end
+
+  def from_nexus?(location)
+    location.split(":").length > 3
+  end
+
+  def retrieve_from_http
+    remote_file cached_tar_path do
+      source new_resource.artifact_location
+      owner new_resource.owner
+      group new_resource.group
+      backup false
+
+      action :create
+    end
+  end
+
+  def retrieve_from_nexus
+    chef_gem 'nexus_cli' do
+      version '0.0.4'
+    end
+
+    directory version_container_path do
+      owner new_resource.owner
+      group new_resource.group
+      recursive true
+    end
+
+    ruby_block "retrieve from nexus" do
+      block do
+        require 'nexus_cli'
+        config = Chef::Artifact.nexus_config_for(node)
+        NexusCli::Remote.configuration = config
+        NexusCli::Remote.pull_artifact(new_resource.artifact_location, version_container_path)
+      end
+    end
+  end
+
+  def retrieve_from_local
+    file cached_tar_path do
+      content ::File.open(new_resource.artifact_location).read
+      owner new_resource.owner
+      group new_resource.group
+    end
   end
