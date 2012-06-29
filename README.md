@@ -46,7 +46,7 @@ keep                | Specify a number of artifacts deployments to keep on disk 
 
     artifact_deploy "pvpnet" do
       version "1.0.0"
-      artifact_url "https://artifacts.riotgames.com/pvpnet-1.0.0.tar.gz"
+      artifact_location "https://artifacts.riotgames.com/pvpnet-1.0.0.tar.gz"
       deploy_to "/srv/pvpnet"
       owner "riot"
       group "riot"
