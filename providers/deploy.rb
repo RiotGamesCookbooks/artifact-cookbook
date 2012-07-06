@@ -57,10 +57,10 @@ action :deploy do
 
     retrieve_artifact!
 
-    execute "extract_artifact" do
-      command "tar xzf #{cached_tar_path} -C #{new_resource.release_path}"
-      user new_resource.owner
-      group new_resource.group
+    if new_resource.is_tarball
+      extract_artifact
+    else
+      copy_artifact
     end
   end
 
@@ -73,7 +73,7 @@ action :deploy do
   recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
   recipe_eval(&new_resource.migrate) if new_resource.should_migrate
   recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
-  
+
   recipe_eval do
     link new_resource.current_path do
       to new_resource.release_path
@@ -85,6 +85,22 @@ action :deploy do
   recipe_eval { write_completion_token }
 
   new_resource.updated_by_last_action(true)
+end
+
+def extract_artifact
+  execute "extract_artifact" do
+    command "tar xzf #{cached_tar_path} -C #{new_resource.release_path}"
+    user new_resource.owner
+    group new_resource.group
+  end
+end
+
+def copy_artifact
+  execute "copy artifact" do
+    command "cp #{cached_tar_path} #{new_resource.release_path}"
+    user new_resource.owner
+    group new_resource.group
+  end
 end
 
 def cached_tar_path
@@ -133,7 +149,7 @@ private
   def delete_release_path_for(version)
     FileUtils.rm_rf ::File.join(new_resource.deploy_to, 'releases', version)
   end
-  
+
   def deployed?
     ::File.exists?(completion_token_path)
   end
