@@ -257,7 +257,7 @@ private
 
   def retrieve_from_nexus
     chef_gem 'nexus_cli' do
-      version '0.0.4'
+      version '0.2.1'
     end
 
     directory version_container_path do
@@ -271,7 +271,7 @@ private
         require 'nexus_cli'
         config = Chef::Artifact.nexus_config_for(node)
         NexusCli::Remote.configuration = config
-        NexusCli::Remote.pull_artifact(new_resource.artifact_location, version_container_path)
+        NexusCli::Remote.pull_artifact(new_resource.artifact_location, version_container_path, {})
       end
     end
   end
