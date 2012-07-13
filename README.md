@@ -40,6 +40,28 @@ force               | Forcefully deploy an artifact even if the artifact has alr
 should_migrate      | Notify the provider if it should perform application migrations                      | Boolean | false
 keep                | Specify a number of artifacts deployments to keep on disk                            | Integer | 2
 
+### Nexus Usage
+
+In order to deploy an artifact from a Nexus repository, you must first create
+an [encrypted data bag](http://wiki.opscode.com/display/chef/Encrypted+Data+Bags) that contains
+the credentials for your Nexus repository.
+
+    knife data bag create artifact nexus -c <your chef config> --secret-file=<your secret file>
+
+Your data bag should look like the following:
+
+    {
+      "id": "nexus",
+      "your_chef_environment": {
+        "username": "nexus_user",
+        "password": "nexus_user_password",
+        "url": "http://nexus.yourcompany.com:8081/nexus/",
+        "repository": "your_repository"
+      }
+    }
+
+After your encrypted data bag is setup you can use Maven identifiers for your artifact_location.
+
 ### Examples
 
 ##### Deploying a Rails application
