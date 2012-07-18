@@ -60,7 +60,9 @@ Your data bag should look like the following:
       }
     }
 
-After your encrypted data bag is setup you can use Maven identifiers for your artifact_location.
+After your encrypted data bag is setup you can use Maven identifiers
+for your artifact_location. If many environments share the same configuration,
+you can use "*" as a wildcard environment name.
 
 ### Examples
 
