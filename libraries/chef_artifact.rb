@@ -11,7 +11,7 @@ class Chef
           raise EncryptedDataBagNotFound.new(data_bag_key)
         end
 
-        config = data_bag_item[node.chef_environment]
+        config = data_bag_item[node.chef_environment] || data_bag_item["*"]
         unless config
           raise EnvironmentNotFound.new(data_bag_key, node.chef_environment)
         end
