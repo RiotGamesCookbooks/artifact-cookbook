@@ -271,7 +271,7 @@ private
         require 'nexus_cli'
         config = Chef::Artifact.nexus_config_for(node)
         remote = NexusCli::Factory.create(config)
-        remote.pull_artifact(new_resource.artifact_location, version_container_path, {})
+        remote.pull_artifact(new_resource.artifact_location, version_container_path)
       end
     end
   end
