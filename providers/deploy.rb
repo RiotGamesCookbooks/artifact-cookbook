@@ -270,8 +270,8 @@ private
       block do
         require 'nexus_cli'
         config = Chef::Artifact.nexus_config_for(node)
-        NexusCli::Remote.configuration = config
-        NexusCli::Remote.pull_artifact(new_resource.artifact_location, version_container_path, {})
+        remote = NexusCli::Factory.create(config)
+        remote.pull_artifact(new_resource.artifact_location, version_container_path, {})
       end
     end
   end
