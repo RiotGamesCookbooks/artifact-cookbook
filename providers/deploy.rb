@@ -257,7 +257,7 @@ private
 
   def retrieve_from_nexus
     chef_gem 'nexus_cli' do
-      version '0.2.1'
+      version '0.6.0'
     end
 
     directory version_container_path do
