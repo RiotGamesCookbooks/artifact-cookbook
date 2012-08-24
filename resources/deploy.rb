@@ -26,7 +26,7 @@ attribute :artifact_name, :kind_of      => String, :required => true, :name_attr
 attribute :artifact_location, :kind_of  => String
 attribute :artifact_url, :kind_of       => String, :regex => URI.regexp(['http', 'https'])
 attribute :deploy_to, :kind_of          => String, :required => true
-attribute :version, :kind_of            => String, :required => true
+attribute :version, :kind_of            => String
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :group, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :environment, :kind_of        => Hash, :default => Hash.new
