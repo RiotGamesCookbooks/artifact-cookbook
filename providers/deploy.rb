@@ -34,6 +34,10 @@ def load_current_resource
     @new_resource.artifact_location = @new_resource.artifact_url
   end
 
+  unless @new_resource.version
+    Chef::Application.fatal! "You must specify a version for artifact '#{@new_resource.name}'!"
+  end
+
   @release_path           = @new_resource.release_path
   @current_path           = @new_resource.current_path
   @shared_path            = @new_resource.shared_path
