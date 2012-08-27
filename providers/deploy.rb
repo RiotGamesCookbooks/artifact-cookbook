@@ -260,9 +260,7 @@ private
   end
 
   def retrieve_from_nexus
-    chef_gem 'nexus_cli' do
-      version '0.6.0'
-    end
+    run_context.include_recipe "nexus::cli"
 
     directory version_container_path do
       owner new_resource.owner

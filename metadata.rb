@@ -8,3 +8,5 @@ version          "0.10.5"
 %w{ centos redhat fedora }.each do |os|
   supports os
 end
+
+depends "nexus", "~> 0.11.1"
