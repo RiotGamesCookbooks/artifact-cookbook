@@ -256,16 +256,7 @@ private
   end
 
   def retrieve_from_nexus
-    node[:artifact][:nexus][:packages].each do |package_name|
-      nexus_package = package package_name do
-        action :nothing
-      end
-      nexus_package.run_action(:install)
-    end
-
-    chef_gem 'nexus_cli' do
-      version '0.6.0'
-    end
+    run_context.include_recipe "nexus::cli"
 
     directory version_container_path do
       owner new_resource.owner
