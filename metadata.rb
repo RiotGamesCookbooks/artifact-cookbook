@@ -9,4 +9,4 @@ version          "0.10.7"
   supports os
 end
 
-depends "nexus", "~> 0.11.1"
+depends "nexus", "~> 0.11.2"
