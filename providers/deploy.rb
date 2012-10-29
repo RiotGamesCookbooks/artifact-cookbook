@@ -75,7 +75,7 @@ action :deploy do
   end
 
   recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
-  recipe_eval(&new_resource.migrate) if new_resource.should_migrate
+  recipe_eval(&new_resource.migrate) if new_resource.migrate
   recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
 
   recipe_eval do
