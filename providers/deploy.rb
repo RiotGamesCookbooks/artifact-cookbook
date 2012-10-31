@@ -250,6 +250,7 @@ private
       source new_resource.artifact_location
       owner new_resource.owner
       group new_resource.group
+      checksum new_resource.artifact_checksum
       backup false
 
       action :create
