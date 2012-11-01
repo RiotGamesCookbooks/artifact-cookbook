@@ -161,10 +161,11 @@ private
   def deployed?
     require 'yaml'
     begin
+      raise Chef::Artifact::ManifestFileNotFound if previous_release_path.nil? || ::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
       Chef::Log.info "Loading manifest.yaml file from directory: #{previous_release_path}"
       original_manifest = YAML.load_file(::File.join(previous_release_path, "manifest.yaml"))
-    rescue Errno::ENOENT, TypeError
-      Chef::Log.info "No manifest file found for current version, deploying anyway"
+    rescue Chef::Artifact::ManifestFileNotFound => e
+      Chef::Log.warn e.message
       return false
     end
     
