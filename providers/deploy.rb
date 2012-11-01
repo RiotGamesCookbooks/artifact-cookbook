@@ -63,6 +63,8 @@ action :deploy do
 
     retrieve_artifact!
 
+    recipe_eval(&new_resource.before_extract) if new_resource.before_extract
+
     if new_resource.is_tarball
       extract_artifact
     else
