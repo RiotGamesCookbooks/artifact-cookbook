@@ -26,6 +26,7 @@ attr_reader :shared_path
 attr_reader :previous_release_path
 attr_reader :artifact_root
 attr_reader :version_container_path
+attr_reader :manifest_file
 attr_reader :previous_versions
 
 def load_current_resource
@@ -45,6 +46,7 @@ def load_current_resource
   @version_container_path = ::File.join(@artifact_root, @new_resource.version)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
+  @manifest_file          = ::File.join(@version_container_path, "manifest.yaml")
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
@@ -66,6 +68,7 @@ action :deploy do
     else
       copy_artifact
     end
+    create_manifest
   end
 
   recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
@@ -157,7 +160,13 @@ private
   end
 
   def deployed?
-    ::File.exists?(completion_token_path)
+    #::File.exists?(completion_token_path)
+    ruby_block "" do
+      block do
+        require 'yaml'
+        deployed_manifest = YAML.load_file(manifest_file)
+      end
+    end
   end
 
   def get_previous_release_path
@@ -284,5 +293,24 @@ private
       content ::File.open(new_resource.artifact_location).read
       owner new_resource.owner
       group new_resource.group
+    end
+  end
+
+  def create_manifest
+    ruby_block "create manifest.yaml" do
+      block do
+        require 'digest'
+        files_in_release_path = nil
+        Dir.chdir(release_path) do |path|
+          files_in_release_path = Dir.glob("**/*").reject { |file| File.directory?(file) }
+        end
+        
+        files_to_sha = files_in_release_path.inject(Hash.new) do |map, file|
+          map[file] = Digest::SHA1.hexdigest(file)
+          map
+        end
+
+        ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(files_to_sha) }        
+      end
     end
   end
