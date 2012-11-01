@@ -46,7 +46,7 @@ def load_current_resource
   @version_container_path = ::File.join(@artifact_root, @new_resource.version)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
-  @manifest_file          = ::File.join(@version_container_path, "manifest.yaml")
+  @manifest_file          = ::File.join(@release_path, "manifest.yaml")
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
@@ -68,7 +68,6 @@ action :deploy do
     else
       copy_artifact
     end
-    create_manifest
   end
 
   recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
@@ -91,7 +90,7 @@ action :deploy do
 
   recipe_eval(&new_resource.restart_proc) if new_resource.restart_proc
 
-  recipe_eval { write_completion_token }
+  recipe_eval { write_manifest(create_manifest(release_path)) }
 
   new_resource.updated_by_last_action(true)
 end
@@ -160,12 +159,24 @@ private
   end
 
   def deployed?
-    #::File.exists?(completion_token_path)
-    ruby_block "" do
-      block do
-        require 'yaml'
-        deployed_manifest = YAML.load_file(manifest_file)
-      end
+    require 'yaml'
+    begin
+      Chef::Log.info "Loading manifest.yaml file from directory: #{previous_release_path}"
+      original_manifest = YAML.load_file(::File.join(previous_release_path, "manifest.yaml"))
+    rescue Errno::ENOENT, TypeError
+      Chef::Log.info "No manifest file found for current version, deploying anyway"
+      return false
+    end
+    
+    current_manifest = create_manifest(current_path)
+    differences = original_manifest.find do |key, value|
+      !current_manifest.has_key?(key) || value != current_manifest[key]
+    end
+    if differences
+      Chef::Log.info "Differences found between the saved manifest at directory: #{previous_release_path} and manifest created from files at: #{current_path}. Redepoying."
+      return false
+    else
+      return true
     end
   end
 
@@ -183,10 +194,6 @@ private
     versions.reject! { |v| v.to_s == version_container_path }
 
     versions.sort_by(&:mtime)
-  end
-
-  def completion_token_path
-    "#{version_container_path}/deploy_complete"
   end
 
   def symlink_it_up!
@@ -225,12 +232,6 @@ private
         mode '0755'
         recursive true
       end
-    end
-  end
-
-  def write_completion_token
-    file completion_token_path do
-      content release_path
     end
   end
 
@@ -296,21 +297,21 @@ private
     end
   end
 
-  def create_manifest
-    ruby_block "create manifest.yaml" do
-      block do
-        require 'digest'
-        files_in_release_path = nil
-        Dir.chdir(release_path) do |path|
-          files_in_release_path = Dir.glob("**/*").reject { |file| File.directory?(file) }
-        end
-        
-        files_to_sha = files_in_release_path.inject(Hash.new) do |map, file|
-          map[file] = Digest::SHA1.hexdigest(file)
-          map
-        end
-
-        ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(files_to_sha) }        
-      end
+  def create_manifest(files_path)
+    require 'digest'
+    files_in_release_path = nil
+    Dir.chdir(files_path) do |path|
+      files_in_release_path = Dir.glob("**/*").reject { |file| ::File.directory?(file) || file == "manifest.yaml" }
     end
+    
+    files_in_release_path.inject(Hash.new) do |map, file|
+      map[file] = Digest::SHA1.hexdigest(file)
+      map
+    end
+  end
+
+  def write_manifest(manifest)
+    require 'yaml'
+    Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
+    ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
   end
