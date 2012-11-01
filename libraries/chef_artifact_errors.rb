@@ -27,11 +27,5 @@ class Chef
         "[artifact] Unable to locate the Artifact data bag item '#{data_bag_key}' for your environment '#{environment}'."
       end
     end
-
-    class ManifestFileNotFound < ArtifactError
-      def message
-        "No manifest file found for current version, deploying anyway."
-      end
-    end
   end
 end

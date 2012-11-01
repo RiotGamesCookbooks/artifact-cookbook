@@ -162,14 +162,12 @@ private
 
   def deployed?
     require 'yaml'
-    begin
-      raise Chef::Artifact::ManifestFileNotFound if previous_release_path.nil? || ::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
-      Chef::Log.info "Loading manifest.yaml file from directory: #{previous_release_path}"
-      original_manifest = YAML.load_file(::File.join(previous_release_path, "manifest.yaml"))
-    rescue Chef::Artifact::ManifestFileNotFound => e
-      Chef::Log.warn e.message
+    if previous_release_path.nil? || ::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
+      Chef::Log.warn "No manifest file found for current version, deploying anyway."
       return false
     end
+    Chef::Log.info "Loading manifest.yaml file from directory: #{previous_release_path}"
+    original_manifest = YAML.load_file(::File.join(previous_release_path, "manifest.yaml"))    
     
     current_manifest = create_manifest(current_path)
     differences = original_manifest.find do |key, value|
