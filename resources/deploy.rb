@@ -33,6 +33,7 @@ attribute :group, :kind_of              => String, :required => true, :regex => 
 attribute :environment, :kind_of        => Hash, :default => Hash.new
 attribute :symlinks, :kind_of           => Hash, :default => Hash.new
 attribute :shared_directories, :kind_of => Array, :default => %w{ system pids log }
+attribute :before_extract, :kind_of     => Proc
 attribute :before_migrate, :kind_of     => Proc
 attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc

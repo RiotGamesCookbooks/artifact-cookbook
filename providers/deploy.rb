@@ -26,6 +26,7 @@ attr_reader :shared_path
 attr_reader :previous_release_path
 attr_reader :artifact_root
 attr_reader :version_container_path
+attr_reader :manifest_file
 attr_reader :previous_versions
 
 def load_current_resource
@@ -45,6 +46,7 @@ def load_current_resource
   @version_container_path = ::File.join(@artifact_root, @new_resource.version)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
+  @manifest_file          = ::File.join(@release_path, "manifest.yaml")
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
@@ -60,6 +62,8 @@ action :deploy do
     setup_shared_directories!
 
     retrieve_artifact!
+
+    recipe_eval(&new_resource.before_extract) if new_resource.before_extract
 
     if new_resource.is_tarball
       extract_artifact
@@ -88,7 +92,7 @@ action :deploy do
 
   recipe_eval(&new_resource.restart_proc) if new_resource.restart_proc
 
-  recipe_eval { write_completion_token }
+  recipe_eval { write_manifest(create_manifest(release_path)) }
 
   new_resource.updated_by_last_action(true)
 end
@@ -157,7 +161,24 @@ private
   end
 
   def deployed?
-    ::File.exists?(completion_token_path)
+    require 'yaml'
+    if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
+      Chef::Log.warn "No manifest file found for current version, deploying anyway."
+      return false
+    end
+    Chef::Log.info "Loading manifest.yaml file from directory: #{previous_release_path}"
+    original_manifest = YAML.load_file(::File.join(previous_release_path, "manifest.yaml"))    
+    
+    current_manifest = create_manifest(current_path)
+    differences = original_manifest.find do |key, value|
+      !current_manifest.has_key?(key) || value != current_manifest[key]
+    end
+    if differences
+      Chef::Log.info "Differences found between the saved manifest at directory: #{previous_release_path} and manifest created from files at: #{current_path}. Redepoying."
+      return false
+    else
+      return true
+    end
   end
 
   def get_previous_release_path
@@ -174,10 +195,6 @@ private
     versions.reject! { |v| v.to_s == version_container_path }
 
     versions.sort_by(&:mtime)
-  end
-
-  def completion_token_path
-    "#{version_container_path}/deploy_complete"
   end
 
   def symlink_it_up!
@@ -216,12 +233,6 @@ private
         mode '0755'
         recursive true
       end
-    end
-  end
-
-  def write_completion_token
-    file completion_token_path do
-      content release_path
     end
   end
 
@@ -269,9 +280,12 @@ private
     ruby_block "retrieve from nexus" do
       block do
         require 'nexus_cli'
-        config = Chef::Artifact.nexus_config_for(node)
-        remote = NexusCli::Factory.create(config)
-        remote.pull_artifact(new_resource.artifact_location, version_container_path)
+
+        unless Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
+          config = Chef::Artifact.nexus_config_for(node)
+          remote = NexusCli::Factory.create(config)
+          remote.pull_artifact(new_resource.artifact_location, version_container_path)
+        end
       end
     end
   end
@@ -282,4 +296,23 @@ private
       owner new_resource.owner
       group new_resource.group
     end
+  end
+
+  def create_manifest(files_path)
+    require 'digest'
+    files_in_release_path = nil
+    Dir.chdir(files_path) do |path|
+      files_in_release_path = Dir.glob("**/*").reject { |file| ::File.directory?(file) || file == "manifest.yaml" }
+    end
+    
+    files_in_release_path.inject(Hash.new) do |map, file|
+      map[file] = Digest::SHA1.hexdigest(file)
+      map
+    end
+  end
+
+  def write_manifest(manifest)
+    require 'yaml'
+    Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
+    ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
   end
