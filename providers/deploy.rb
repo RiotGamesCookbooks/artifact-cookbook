@@ -162,7 +162,7 @@ private
 
   def deployed?
     require 'yaml'
-    if previous_release_path.nil? || ::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
+    if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
       Chef::Log.warn "No manifest file found for current version, deploying anyway."
       return false
     end
