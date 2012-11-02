@@ -31,6 +31,7 @@ group               | Group of files created and modified                       
 environment         | An environment hash used by resources within the provider                            | Hash    | Hash.new
 symlinks            | A hash that maps files in the shared directory to their paths in the current release | Hash    | Hash.new
 shared_directories  | Directories to be created in the shared folder                                       | Array   | %w{ log pids }
+before_extract      | A proc containing resources to be executed before the artifact package is extracted  | Proc    |
 before_migrate      | A proc containing resources to be executed before the migration Proc                 | Proc    |
 after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
 migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
