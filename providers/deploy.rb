@@ -162,6 +162,12 @@ private
 
   def deployed?
     require 'yaml'
+    if get_previous_release_version != new_resource.version
+      Chef::Log.info "No current version installed for #{new_resource.name}." if get_previous_release_version.nil?
+      Chef::Log.info "Currently installed version of artifact is #{get_previous_release_version}." unless get_previous_release_version.nil?
+      Chef::Log.info "Installing version, #{new_resource.version} for #{new_resource.name}."
+      return false 
+    end
     if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
       Chef::Log.warn "No manifest file found for current version, deploying anyway."
       return false
@@ -184,6 +190,12 @@ private
   def get_previous_release_path
     if ::File.exists?(current_path)
       ::File.readlink(current_path)
+    end
+  end
+
+  def get_previous_release_version
+    if ::File.exists?(current_path)
+      ::File.basename(get_previous_release_path)
     end
   end
 
