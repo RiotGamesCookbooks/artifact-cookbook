@@ -19,6 +19,7 @@
 #
 require 'pathname'
 require 'uri'
+require 'yaml'
 
 attr_reader :release_path
 attr_reader :current_path
@@ -161,7 +162,6 @@ private
   end
 
   def deployed?
-    require 'yaml'
     if get_previous_release_version != new_resource.version
       Chef::Log.info "No current version installed for #{new_resource.name}." if get_previous_release_version.nil?
       Chef::Log.info "Currently installed version of artifact is #{get_previous_release_version}." unless get_previous_release_version.nil?
