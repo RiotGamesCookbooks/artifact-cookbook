@@ -293,7 +293,7 @@ private
       block do
         require 'nexus_cli'
 
-        unless Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
+        unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
           remote = NexusCli::Factory.create(config)
           remote.pull_artifact(new_resource.artifact_location, version_container_path)
