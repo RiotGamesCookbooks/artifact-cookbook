@@ -61,10 +61,6 @@ def current_path
   "#{self.deploy_to}/current"
 end
 
-def release_path
-  "#{self.deploy_to}/releases/#{self.version}"
-end
-
 def shared_path
   "#{self.deploy_to}/shared"
 end

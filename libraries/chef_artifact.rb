@@ -17,6 +17,17 @@ class Chef
         end
         config
       end
+
+      def get_actual_version(node, artifact_location, version)
+        if version.casecmp("latest") == 0
+          require 'nexus_cli'
+          config = nexus_config_for(node)
+          remote = NexusCli::RemoteFactory.create(config)
+          Nokogiri::XML(remote.get_artifact_info(artifact_location)).xpath("//version").first.content()
+        else
+          version
+        end
+      end
     end
   end
 end
