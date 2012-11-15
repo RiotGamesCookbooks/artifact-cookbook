@@ -29,6 +29,7 @@ attr_reader :artifact_root
 attr_reader :version_container_path
 attr_reader :manifest_file
 attr_reader :previous_versions
+attr_reader :actual_version
 
 def load_current_resource
   if @new_resource.artifact_url
@@ -40,11 +41,18 @@ def load_current_resource
     Chef::Application.fatal! "You must specify a version for artifact '#{@new_resource.name}'!"
   end
 
-  @release_path           = @new_resource.release_path
+  if latest?(@new_resource.version) && from_http?(@new_resource.artifact_location)
+    Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http!"
+  end
+  
+  run_context.include_recipe "nexus::cli"
+
+  @actual_version         = Chef::Artifact.get_actual_version(node, @new_resource.artifact_location, @new_resource.version)
+  @release_path           = get_release_path
   @current_path           = @new_resource.current_path
   @shared_path            = @new_resource.shared_path
   @artifact_root          = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
-  @version_container_path = ::File.join(@artifact_root, @new_resource.version)
+  @version_container_path = ::File.join(@artifact_root, actual_version)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
   @manifest_file          = ::File.join(@release_path, "manifest.yaml")
@@ -85,7 +93,7 @@ action :deploy do
 
   recipe_eval do
     link new_resource.current_path do
-      to new_resource.release_path
+      to release_path
       user new_resource.owner
       group new_resource.group
     end
@@ -100,7 +108,7 @@ end
 
 def extract_artifact
   execute "extract_artifact" do
-    command "tar xzf #{cached_tar_path} -C #{new_resource.release_path}"
+    command "tar xzf #{cached_tar_path} -C #{release_path}"
     user new_resource.owner
     group new_resource.group
   end
@@ -108,7 +116,7 @@ end
 
 def copy_artifact
   execute "copy artifact" do
-    command "cp #{cached_tar_path} #{new_resource.release_path}"
+    command "cp #{cached_tar_path} #{release_path}"
     user new_resource.owner
     group new_resource.group
   end
@@ -123,6 +131,9 @@ def artifact_filename
     group_id, artifact_id, version, extension = new_resource.artifact_location.split(":")
     unless extension
       extension = "jar"
+    end
+    if latest?(version)
+      version = actual_version
     end
     "#{artifact_id}-#{version}.#{extension}"
   else
@@ -165,7 +176,7 @@ private
     if get_previous_release_version != new_resource.version
       Chef::Log.info "No current version installed for #{new_resource.name}." if get_previous_release_version.nil?
       Chef::Log.info "Currently installed version of artifact is #{get_previous_release_version}." unless get_previous_release_version.nil?
-      Chef::Log.info "Installing version, #{new_resource.version} for #{new_resource.name}."
+      Chef::Log.info "Installing version, #{actual_version} for #{new_resource.name}."
       return false 
     end
     if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
@@ -199,6 +210,10 @@ private
     end
   end
 
+  def get_release_path
+    ::File.join(new_resource.deploy_to, "releases", actual_version)
+  end
+
   def get_previous_versions
     versions = Dir[::File.join(artifact_root, '**')].collect do |v|
       Pathname.new(v)
@@ -218,7 +233,7 @@ private
         recursive true
       end
 
-      link "#{new_resource.release_path}/#{value}" do
+      link "#{release_path}/#{value}" do
         to "#{new_resource.shared_path}/#{key}"
         owner new_resource.owner
         group new_resource.group
@@ -268,6 +283,10 @@ private
     location.split(":").length > 3
   end
 
+  def latest?(version)
+    version.casecmp("latest") == 0
+  end
+
   def retrieve_from_http
     remote_file cached_tar_path do
       source new_resource.artifact_location
@@ -281,13 +300,6 @@ private
   end
 
   def retrieve_from_nexus
-    run_context.include_recipe "nexus::cli"
-
-    directory version_container_path do
-      owner new_resource.owner
-      group new_resource.group
-      recursive true
-    end
 
     ruby_block "retrieve from nexus" do
       block do
@@ -295,7 +307,7 @@ private
 
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
-          remote = NexusCli::Factory.create(config)
+          remote = NexusCli::RemoteFactory.create(config)
           remote.pull_artifact(new_resource.artifact_location, version_container_path)
         end
       end
