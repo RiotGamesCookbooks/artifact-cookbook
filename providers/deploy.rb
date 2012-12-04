@@ -307,7 +307,7 @@ private
 
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
-          remote = NexusCli::RemoteFactory.create(config)
+          remote = NexusCli::RemoteFactory.create(config, false)
           remote.pull_artifact(new_resource.artifact_location, version_container_path)
         end
       end
