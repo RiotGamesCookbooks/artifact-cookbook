@@ -12,10 +12,10 @@ class Chef
       #
       # @return [Chef::DataBagItem, Chef::EncryptedDataBagItem]
       def load_nexus_dbi(node)
-        if node[:chef_solo]
-          Chef::EncryptedDataBagItem.load(DATA_BAG, NEXUS_DBI)
-        else
+        if node[:solo]
           Chef::DataBagItem.load(DATA_BAG, NEXUS_DBI)
+        else
+          Chef::EncryptedDataBagItem.load(DATA_BAG, NEXUS_DBI)
         end
       rescue Net::HTTPServerException
         raise EncryptedDataBagNotFound.new(NEXUS_DBI)
