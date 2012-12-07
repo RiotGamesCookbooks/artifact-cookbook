@@ -12,7 +12,7 @@ class Chef
       #
       # @return [Chef::DataBagItem, Chef::EncryptedDataBagItem]
       def load_nexus_dbi(node)
-        if node[:solo]
+        if Chef::Config[:solo]
           Chef::DataBagItem.load(DATA_BAG, NEXUS_DBI)
         else
           Chef::EncryptedDataBagItem.load(DATA_BAG, NEXUS_DBI)
