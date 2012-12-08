@@ -8,10 +8,8 @@ class Chef
       # running as Chef Client and a standard data bag item will be used if running as
       # Chef Solo
       #
-      # @param [Chef::Node] node
-      #
       # @return [Chef::DataBagItem, Chef::EncryptedDataBagItem]
-      def load_nexus_dbi(node)
+      def load_nexus_dbi
         if Chef::Config[:solo]
           Chef::DataBagItem.load(DATA_BAG, NEXUS_DBI)
         else
@@ -22,7 +20,7 @@ class Chef
       end
 
       def nexus_config_for(node)
-        data_bag_item = load_nexus_dbi(node)
+        data_bag_item = load_nexus_dbi
 
         config = data_bag_item[node.chef_environment] || data_bag_item["*"]
         unless config
