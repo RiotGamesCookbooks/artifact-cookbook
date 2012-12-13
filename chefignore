@@ -39,6 +39,7 @@ a.out
 spec/*
 spec/fixtures/*
 features/*
+fixtures/*
 
 ## SCM
 .gitignore

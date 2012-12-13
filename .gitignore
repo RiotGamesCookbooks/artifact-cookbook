@@ -1,3 +1,6 @@
 *.sw[op]
 Gemfile.lock
 Berksfile.lock
+fixtures/artifact_test*.tgz
+fixtures/databags/
+.vagrant
