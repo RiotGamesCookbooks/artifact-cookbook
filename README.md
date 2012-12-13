@@ -126,6 +126,16 @@ you can use "*" as a wildcard environment name.
       action :deploy
     end
 
+# Testing
+
+A sample cookbook is available in `fixtures`. You can package it with mkartifact.sh, and
+upload it to Nexus as artifact_cookbook:test:1.2.3:tgz.
+
+Set the artifact_test_location and artifact_test_version environment variables when running
+vagrant to change how they'll be provisioned. Default is 1.2.3 from a file URL.
+
+* artifact_test_location=artifact_cookbook:test:1.2.3:tgz artifact_test_version=1.2.3 bundle exec vagrant
+
 # Releasing
 
 1. Install the prerequisite gems
