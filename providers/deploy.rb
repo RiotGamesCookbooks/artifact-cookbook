@@ -44,10 +44,14 @@ def load_current_resource
   if latest?(@new_resource.version) && from_http?(@new_resource.artifact_location)
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http!"
   end
-  
-  run_context.include_recipe "nexus::cli"
 
-  @actual_version         = Chef::Artifact.get_actual_version(node, @new_resource.artifact_location, @new_resource.version)
+  if from_nexus?(@new_resource.artifact_location)
+    run_context.include_recipe "nexus::cli"
+    @actual_version = Chef::Artifact.get_actual_version(node, @new_resource.artifact_location, @new_resource.version)
+  else
+    @actual_version = @new_resource.version
+  end
+
   @release_path           = get_release_path
   @current_path           = @new_resource.current_path
   @shared_path            = @new_resource.shared_path
