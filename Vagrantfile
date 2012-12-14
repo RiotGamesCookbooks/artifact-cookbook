@@ -1,5 +1,8 @@
 require 'berkshelf/vagrant'
 
+VERSION = ENV["artifact_test_version"] || "1.2.3"
+LOCATION = ENV["artifact_test_location"] || "/vagrant/fixtures/artifact_test-#{VERSION}.tgz"
+
 Vagrant::Config.run do |config|
   # All Vagrant configuration is done here. The most common configuration
   # options are documented and commented below. For a complete reference,
@@ -33,7 +36,7 @@ Vagrant::Config.run do |config|
   # Assign this VM to a bridged network, allowing you to connect directly to a
   # network using the host's network device. This makes the VM appear as another
   # physical device on your network.
-  config.vm.network :bridged
+  # config.vm.network :bridged
 
   # Forward a port from the guest to the host, which allows for outside
   # computers to access the VM, whereas host only networking does not.
@@ -49,15 +52,17 @@ Vagrant::Config.run do |config|
 
   config.vm.provision :chef_solo do |chef|
     chef.json = {
-      :mysql => {
-        :server_root_password => 'rootpass',
-        :server_debian_password => 'debpass',
-        :server_repl_password => 'replpass'
+      :artifact_test => {
+        :version => VERSION,
+        :location => LOCATION
       }
     }
 
+    chef.cookbooks_path = ["./fixtures/"]
+    chef.data_bags_path = "./fixtures/databags/"
+
     chef.run_list = [
-      "recipe[artifact::default]"
+      "recipe[artifact_test::default]"
     ]
   end
 end
