@@ -33,7 +33,7 @@ class Chef
         if version.casecmp("latest") == 0
           require 'nexus_cli'
           config = nexus_config_for(node)
-          remote = NexusCli::RemoteFactory.create(config, false)
+          remote = NexusCli::RemoteFactory.create(config)
           Nokogiri::XML(remote.get_artifact_info(artifact_location)).xpath("//version").first.content()
         else
           version
