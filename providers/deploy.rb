@@ -32,11 +32,6 @@ attr_reader :previous_versions
 attr_reader :actual_version
 
 def load_current_resource
-  if @new_resource.artifact_url
-    Chef::Log.warn "[artifact] 'artifact_url' is deprecated, please use 'artifact_location' instead."
-    @new_resource.artifact_location = @new_resource.artifact_url
-  end
-
   unless @new_resource.version
     Chef::Application.fatal! "You must specify a version for artifact '#{@new_resource.name}'!"
   end
@@ -46,7 +41,17 @@ def load_current_resource
   end
 
   if from_nexus?(@new_resource.artifact_location)
-    run_context.include_recipe "nexus::cli"
+    
+    %W{libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
+      package nokogiri_requirement do
+        action :install
+      end.run_action(:install)
+    end
+
+    chef_gem "nexus_cli" do
+      version "2.0.2"
+    end
+
     @actual_version = Chef::Artifact.get_actual_version(node, @new_resource.artifact_location, @new_resource.version)
   else
     @actual_version = @new_resource.version
@@ -284,7 +289,7 @@ private
   end
 
   def from_nexus?(location)
-    location.split(":").length > 3
+    location.split(":").length > 2
   end
 
   def latest?(version)
