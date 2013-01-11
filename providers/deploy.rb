@@ -29,7 +29,9 @@ attr_reader :artifact_root
 attr_reader :version_container_path
 attr_reader :manifest_file
 attr_reader :previous_versions
-attr_reader :actual_version
+
+attr_reader :artifact_location
+attr_reader :artifact_version
 
 def load_current_resource
   unless @new_resource.version
@@ -41,7 +43,6 @@ def load_current_resource
   end
 
   if from_nexus?(@new_resource.artifact_location)
-    
     %W{libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
       package nokogiri_requirement do
         action :install
@@ -52,16 +53,19 @@ def load_current_resource
       version "2.0.2"
     end
 
-    @actual_version = Chef::Artifact.get_actual_version(node, @new_resource.artifact_location, @new_resource.version)
+    group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
+    @artifact_version = Chef::Artifact.get_actual_version(node, group_id, artifact_id, @new_resource.version, extension)
+    @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   else
-    @actual_version = @new_resource.version
+    @artifact_version = @new_resource.version
+    @artifact_location = @new_resource.artifact_location
   end
 
   @release_path           = get_release_path
   @current_path           = @new_resource.current_path
   @shared_path            = @new_resource.shared_path
   @artifact_root          = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
-  @version_container_path = ::File.join(@artifact_root, actual_version)
+  @version_container_path = ::File.join(@artifact_root, artifact_version)
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
   @manifest_file          = ::File.join(@release_path, "manifest.yaml")
@@ -136,17 +140,14 @@ def cached_tar_path
 end
 
 def artifact_filename
-  if from_nexus?(new_resource.artifact_location)
-    group_id, artifact_id, version, extension = new_resource.artifact_location.split(":")
+  if from_nexus?(new_resource.artifact_location)    
+    group_id, artifact_id, version, extension = artifact_location.split(":")
     unless extension
       extension = "jar"
     end
-    if latest?(version)
-      version = actual_version
-    end
-    "#{artifact_id}-#{version}.#{extension}"
+   "#{artifact_id}-#{version}.#{extension}"
   else
-    ::File.basename(new_resource.artifact_location)
+    ::File.basename(artifact_location)
   end
 end
 
@@ -185,7 +186,7 @@ private
     if get_previous_release_version != new_resource.version
       Chef::Log.info "No current version installed for #{new_resource.name}." if get_previous_release_version.nil?
       Chef::Log.info "Currently installed version of artifact is #{get_previous_release_version}." unless get_previous_release_version.nil?
-      Chef::Log.info "Installing version, #{actual_version} for #{new_resource.name}."
+      Chef::Log.info "Installing version, #{artifact_version} for #{new_resource.name}."
       return false 
     end
     if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
@@ -220,7 +221,7 @@ private
   end
 
   def get_release_path
-    ::File.join(new_resource.deploy_to, "releases", actual_version)
+    ::File.join(new_resource.deploy_to, "releases", artifact_version)
   end
 
   def get_previous_versions
@@ -317,7 +318,7 @@ private
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
           remote = NexusCli::RemoteFactory.create(config, false)
-          remote.pull_artifact(new_resource.artifact_location, version_container_path)
+          remote.pull_artifact(artifact_location, version_container_path)
         end
       end
     end
