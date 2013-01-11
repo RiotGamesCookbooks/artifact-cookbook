@@ -119,6 +119,11 @@ action :deploy do
   new_resource.updated_by_last_action(true)
 end
 
+# Extracts the artifact defined in the resource call. Handles
+# a variety of 'tar' based files (tar.gz, tgz, tar, tar.bz2, tbz)
+# and a few 'zip' based files (zip, war, jar).
+# 
+# @return [void]
 def extract_artifact
   case ::File.extname(cached_tar_path)
   when /tar.gz|tgz|tar|tar.bz2|tbz/
@@ -139,6 +144,13 @@ def extract_artifact
   end
 end
 
+# Copies the artifact from its cached path to its release path. The cached path is
+# the configured Chef::Config[:file_cache_path]/artifact_deploys
+# 
+# @example
+#   cp /tmp/vagrant-chef-1/artifact_deploys/artifact_test/1.0.0/my-artifact.zip /srv/artifact_test/releases/1.0.0
+# 
+# @return [void]
 def copy_artifact
   execute "copy artifact" do
     command "cp #{cached_tar_path} #{release_path}"
@@ -147,10 +159,26 @@ def copy_artifact
   end
 end
 
+# Returns the file path to the cached artifact the resource is installing.
+# 
+# @return [String] the path to the cached artifact
 def cached_tar_path
   ::File.join(version_container_path, artifact_filename)
 end
 
+# Returns the filename of the artifact being installed when the LWRP
+# is called. Depending on how the resource is called in a recipe, the
+# value returned by this method will change. If from_nexus?, return the
+# concatination of "artifact_id-version.extension" otherwise return the
+# basename of where the artifact is located.
+# 
+# @example
+#   When: new_resource.artifact_location => "com.artifact:my-artifact:1.0.0:tgz"
+#     artifact_filename => "my-artifact-1.0.0.tgz"
+#   When: new_resource.artifact_location => "http://some-site.com/my-artifact.jar"
+#     artifact_filename => "my-artifact.jar"
+# 
+# @return [String] the artifacts filename
 def artifact_filename
   if from_nexus?(new_resource.artifact_location)    
     group_id, artifact_id, version, extension = artifact_location.split(":")

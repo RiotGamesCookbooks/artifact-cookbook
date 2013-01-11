@@ -44,10 +44,6 @@ attribute :should_migrate, :kind_of     => [ TrueClass, FalseClass ], :default =
 attribute :keep, :kind_of               => Integer, :default => 2
 attribute :is_tarball, :kind_of         => [ TrueClass, FalseClass ], :default => true
 
-
-# This is to support deprecated attribute artifact_url.
-attr_writer :artifact_location
-
 def initialize(*args)
   super
   @action = :deploy
