@@ -120,10 +120,28 @@ action :deploy do
 end
 
 def extract_artifact
-  execute "extract_artifact" do
-    command "tar xzf #{cached_tar_path} -C #{release_path}"
-    user new_resource.owner
-    group new_resource.group
+  case ::File.extname(cached_tar_path)
+  when /tar.gz|tgz/
+    execute "extract_artifact" do
+      command "tar xzf #{cached_tar_path} -C #{release_path}"
+      user new_resource.owner
+      group new_resource.group
+    end
+  when /tar.bz2|tbz/
+    execute "extract_artifact" do
+      command "tar xjf #{cached_tar_path} -C #{release_path}"
+      user new_resource.owner
+      group new_resource.group
+    end
+  when /zip|war|jar/
+    package "unzip"
+    execute "extract_artifact" do
+      command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
+      user new_resource.owner
+      group new_resource.group
+    end
+  else
+    Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are"
   end
 end
 
