@@ -29,6 +29,22 @@ class Chef
         config
       end
 
+
+      # Uses the provided parameters to make a call to the data bag
+      # configured Nexus server to have the server tell us what the
+      # actual version number is when 'latest' is given.
+      # 
+      # @param  node [Chef::Node] the node
+      # @param  group_id [String] the group_id of the artifact
+      # @param  artifact_id [String] the artifact_id of the artifact
+      # @param  version [String] the version of the artifact
+      # @param  extension [String] the extension of the artifact
+      # 
+      # @example
+      #   Chef::Artifact.get_actual_version(node, "com.myartifact", "my-artifact", "latest", "tgz") => "2.0.5"
+      #   Chef::Artifact.get_actual_version(node, "com.myartifact", "my-artifact", "1.0.1", "tgz")  => "1.0.1"
+      # 
+      # @return [String] the version number that latest resolves to or the passed in value
       def get_actual_version(node, group_id, artifact_id, version, extension)
         if version.casecmp("latest") == 0
           require 'nexus_cli'
@@ -39,6 +55,20 @@ class Chef
         else
           version
         end
+      end
+
+      # Returns the currently deployed version of an artifact given that artifacts
+      # installation directory by reading what directory the 'current' symlink
+      # points to.
+      # 
+      # @param  deploy_to_dir [String] the directory where an artifact is installed
+      # 
+      # @example
+      #   Chef::Artifact.get_current_deployed_version("/opt/my_deploy_dir") => "2.0.65"
+      # 
+      # @return [String] the currently deployed version of the given artifact
+      def get_current_deployed_version(deploy_to_dir)
+        ::File.basename(::File.readlink(::File.join(deploy_to_dir, "current")))
       end
     end
   end
