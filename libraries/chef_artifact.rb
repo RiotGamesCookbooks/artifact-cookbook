@@ -68,7 +68,9 @@ class Chef
       # 
       # @return [String] the currently deployed version of the given artifact
       def get_current_deployed_version(deploy_to_dir)
-        ::File.basename(::File.readlink(::File.join(deploy_to_dir, "current")))
+        if ::File.exists?(::File.join(deploy_to_dir, "current"))
+          ::File.basename(::File.readlink(::File.join(deploy_to_dir, "current")))
+        end
       end
     end
   end

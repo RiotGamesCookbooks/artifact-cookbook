@@ -69,54 +69,53 @@ def load_current_resource
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
   @manifest_file          = ::File.join(@release_path, "manifest.yaml")
+  @deploy                 = false
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
 
 action :deploy do
-  next unless new_resource.force or not deployed?
-
-  delete_previous_versions(:keep => new_resource.keep)
-
   recipe_eval do
     setup_deploy_directories!
     setup_shared_directories!
+    @deploy = manifest_differences?
 
     retrieve_artifact!
+    
+    recipe_eval(&new_resource.before_deploy) if new_resource.before_deploy
 
-    recipe_eval(&new_resource.before_extract) if new_resource.before_extract
+    if deploy?
+      recipe_eval(&new_resource.before_extract) if new_resource.before_extract
+      if new_resource.is_tarball
+        extract_artifact
+      else
+        copy_artifact
+      end
+      recipe_eval(&new_resource.after_extract) if new_resource.after_extract
 
-    if new_resource.is_tarball
-      extract_artifact
-    else
-      copy_artifact
+      recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
+      symlink_it_up!
+      recipe_eval(&new_resource.after_symlink) if new_resource.after_symlink
     end
-  end
 
-  recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
+    recipe_eval(&new_resource.configure) if new_resource.configure
 
-  recipe_eval do
-    symlink_it_up!
-  end
-
-  recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
-  recipe_eval(&new_resource.migrate) if new_resource.should_migrate
-  recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
-
-  recipe_eval do
-    link new_resource.current_path do
-      to release_path
-      user new_resource.owner
-      group new_resource.group
+    if deploy? && new_resource.should_migrate
+      recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
+      recipe_eval(&new_resource.migrate) if new_resource.should_migrate
+      recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
     end
+
+    if deploy? || manifest_differences?
+      recipe_eval(&new_resource.restart) if new_resource.restart
+    end
+
+    recipe_eval(&new_resource.after_deploy) if new_resource.after_deploy
+
+    recipe_eval { write_manifest }
+    new_resource.updated_by_last_action(true)
   end
-
-  recipe_eval(&new_resource.restart_proc) if new_resource.restart_proc
-
-  recipe_eval { write_manifest(create_manifest(release_path)) }
-
-  new_resource.updated_by_last_action(true)
 end
 
 # Extracts the artifact defined in the resource call. Handles
@@ -222,30 +221,27 @@ private
     FileUtils.rm_rf ::File.join(new_resource.deploy_to, 'releases', version)
   end
 
-  def deployed?
+  def manifest_differences?
     if get_previous_release_version != new_resource.version
       Chef::Log.info "No current version installed for #{new_resource.name}." if get_previous_release_version.nil?
       Chef::Log.info "Currently installed version of artifact is #{get_previous_release_version}." unless get_previous_release_version.nil?
       Chef::Log.info "Installing version, #{artifact_version} for #{new_resource.name}."
-      return false 
-    end
-    if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
-      Chef::Log.warn "No manifest file found for current version, deploying anyway."
-      return false
-    end
-    Chef::Log.info "Loading manifest.yaml file from directory: #{previous_release_path}"
-    original_manifest = YAML.load_file(::File.join(previous_release_path, "manifest.yaml"))    
-    
-    current_manifest = create_manifest(current_path)
-    differences = original_manifest.find do |key, value|
-      !current_manifest.has_key?(key) || value != current_manifest[key]
-    end
-    if differences
-      Chef::Log.info "Differences found between the saved manifest at directory: #{previous_release_path} and manifest created from files at: #{current_path}. Redepoying."
-      return false
-    else
       return true
     end
+    if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
+      Chef::Log.warn "No manifest file found for current version, assuming there are differences."
+      return true
+    end
+
+    Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
+    original_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
+    
+    current_manifest = create_manifest(release_path)
+    !!original_manifest.find { |key, value| !current_manifest.has_key?(key) || value != current_manifest[key] }
+  end
+
+  def deploy?
+    @deploy
   end
 
   def get_previous_release_path
@@ -260,6 +256,15 @@ private
     end
   end
 
+  # Returns a path to the artifact being installed by
+  # the configured resource.
+  # 
+  # @example
+  #   When: 
+  #     new_resource.deploy_to = "/srv/artifact_test" and artifact_version = "1.0.0"
+  #       get_release_path => "/srv/artifact_test/releases/1.0.0"
+  # 
+  # @return [String] the artifacts release path
   def get_release_path
     ::File.join(new_resource.deploy_to, "releases", artifact_version)
   end
@@ -374,6 +379,7 @@ private
 
   def create_manifest(files_path)
     require 'digest'
+    Chef::Log.info "Generating manifest for files in #{files_path}"
     files_in_release_path = nil
     Dir.chdir(files_path) do |path|
       files_in_release_path = Dir.glob("**/*").reject { |file| ::File.directory?(file) || file == "manifest.yaml" }
@@ -385,8 +391,13 @@ private
     end
   end
 
-  def write_manifest(manifest)
-    require 'yaml'
-    Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
-    ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
+  def write_manifest
+    #ruby_block "write_manifest" do
+      #block do
+        manifest = create_manifest(release_path)
+        require 'yaml'
+        Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
+        ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
+      #end
+    #end
   end
