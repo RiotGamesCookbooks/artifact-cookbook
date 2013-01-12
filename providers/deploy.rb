@@ -65,14 +65,14 @@ def load_current_resource
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
   @manifest_file          = ::File.join(@release_path, "manifest.yaml")
-  @deploy                 = false
+  @deploy                 = @new_resource.force
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
 
 action :deploy do
-
+  delete_previous_versions(:keep => new_resource.keep)
   setup_deploy_directories!
   setup_shared_directories!
   Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
@@ -205,23 +205,25 @@ end
 private
 
   def delete_previous_versions(options = {})
-    keep = options[:keep] || 0
-    delete_first = total = previous_versions.length
+    recipe_eval do
+      keep = options[:keep] || 0
+      delete_first = total = previous_versions.length
 
-    if total == 0 || total <= keep
-      return true
-    end
+      if total == 0 || total <= keep
+        return true
+      end
 
-    delete_first -= keep
+      delete_first -= keep
 
-    Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
+      Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
 
-    to_delete = previous_versions.shift(delete_first)
+      to_delete = previous_versions.shift(delete_first)
 
-    to_delete.each do |version|
-      delete_cached_files_for(version.basename)
-      delete_release_path_for(version.basename)
-      Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
+      to_delete.each do |version|
+        delete_cached_files_for(version.basename)
+        delete_release_path_for(version.basename)
+        Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
+      end
     end
   end
 
