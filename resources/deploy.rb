@@ -24,34 +24,29 @@ actions :deploy
 
 attribute :artifact_name, :kind_of      => String, :required => true, :name_attribute => true
 attribute :artifact_location, :kind_of  => String
-attribute :artifact_url, :kind_of       => String, :regex => URI.regexp(['http', 'https'])
 attribute :artifact_checksum, :kind_of  => String
 attribute :deploy_to, :kind_of          => String, :required => true
-attribute :version, :kind_of            => String
+attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :group, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :environment, :kind_of        => Hash, :default => Hash.new
 attribute :symlinks, :kind_of           => Hash, :default => Hash.new
 attribute :shared_directories, :kind_of => Array, :default => %w{ system pids log }
-
 attribute :force, :kind_of              => [ TrueClass, FalseClass ], :default => false
 attribute :should_migrate, :kind_of     => [ TrueClass, FalseClass ], :default => false
 attribute :keep, :kind_of               => Integer, :default => 2
 attribute :is_tarball, :kind_of         => [ TrueClass, FalseClass ], :default => true
-
-attribute :before_deploy, :kind_of     => Proc
+attribute :before_deploy, :kind_of      => Proc
 attribute :before_extract, :kind_of     => Proc
-attribute :after_extract, :kind_of     => Proc
+attribute :after_extract, :kind_of      => Proc
 attribute :before_symlink, :kind_of     => Proc
-attribute :after_symlink, :kind_of     => Proc
-attribute :configure, :kind_of     => Proc
+attribute :after_symlink, :kind_of      => Proc
+attribute :configure, :kind_of          => Proc
 attribute :before_migrate, :kind_of     => Proc
 attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc
-attribute :restart, :kind_of       => Proc
-attribute :after_deploy, :kind_of     => Proc
-
-
+attribute :restart, :kind_of            => Proc
+attribute :after_deploy, :kind_of       => Proc
 
 def initialize(*args)
   super

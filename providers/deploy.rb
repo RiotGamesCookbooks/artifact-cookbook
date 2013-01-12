@@ -3,6 +3,7 @@
 # Provider:: deploy
 #
 # Author:: Jamie Winsor (<jamie@vialstudios.com>)
+# Author:: Kyle Allan (<kallan@riotgames.com>)
 # Copyright 2012, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,17 +30,12 @@ attr_reader :artifact_root
 attr_reader :version_container_path
 attr_reader :manifest_file
 attr_reader :previous_versions
-
 attr_reader :artifact_location
 attr_reader :artifact_version
 
 def load_current_resource
-  unless @new_resource.version
-    Chef::Application.fatal! "You must specify a version for artifact '#{@new_resource.name}'!"
-  end
-
   if latest?(@new_resource.version) && from_http?(@new_resource.artifact_location)
-    Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http!"
+    Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
   end
 
   if from_nexus?(@new_resource.artifact_location)
@@ -76,46 +72,58 @@ def load_current_resource
 end
 
 action :deploy do
-  recipe_eval do
-    setup_deploy_directories!
-    setup_shared_directories!
-    @deploy = manifest_differences?
 
-    retrieve_artifact!
-    
-    recipe_eval(&new_resource.before_deploy) if new_resource.before_deploy
+  setup_deploy_directories!
+  setup_shared_directories!
+  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
+  Chef::Log.info "Lets see! #{::File.exists?(release_path)}"
+  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
 
-    if deploy?
-      recipe_eval(&new_resource.before_extract) if new_resource.before_extract
-      if new_resource.is_tarball
-        extract_artifact
-      else
-        copy_artifact
-      end
-      recipe_eval(&new_resource.after_extract) if new_resource.after_extract
+  @deploy = manifest_differences?
 
-      recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
-      symlink_it_up!
-      recipe_eval(&new_resource.after_symlink) if new_resource.after_symlink
+  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
+  Chef::Log.info "manifest_differences? #{deploy?}"
+  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
+
+  retrieve_artifact!
+
+  recipe_eval(&new_resource.before_deploy) if new_resource.before_deploy
+
+  if deploy?
+    recipe_eval(&new_resource.before_extract) if new_resource.before_extract
+    if new_resource.is_tarball
+      extract_artifact
+
+      Chef::Log.info "(*************************************************)"
+      Chef::Log.info "did it extract? #{::File.exist?(::File.join(release_path, 'log4j.xml'))}"
+      Chef::Log.info "(*************************************************)"
+    else
+      copy_artifact
     end
+    recipe_eval(&new_resource.after_extract) if new_resource.after_extract
 
-    recipe_eval(&new_resource.configure) if new_resource.configure
-
-    if deploy? && new_resource.should_migrate
-      recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
-      recipe_eval(&new_resource.migrate) if new_resource.should_migrate
-      recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
-    end
-
-    if deploy? || manifest_differences?
-      recipe_eval(&new_resource.restart) if new_resource.restart
-    end
-
-    recipe_eval(&new_resource.after_deploy) if new_resource.after_deploy
-
-    recipe_eval { write_manifest }
-    new_resource.updated_by_last_action(true)
+    recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
+    symlink_it_up!
+    recipe_eval(&new_resource.after_symlink) if new_resource.after_symlink
   end
+
+  recipe_eval(&new_resource.configure) if new_resource.configure
+
+  if deploy? && new_resource.should_migrate
+    recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
+    recipe_eval(&new_resource.migrate) if new_resource.should_migrate
+    recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
+  end
+
+  if deploy? || manifest_differences?
+    recipe_eval(&new_resource.restart) if new_resource.restart
+  end
+
+  recipe_eval(&new_resource.after_deploy) if new_resource.after_deploy
+
+  recipe_eval { write_manifest }
+
+  new_resource.updated_by_last_action(true)
 end
 
 # Extracts the artifact defined in the resource call. Handles
@@ -124,22 +132,24 @@ end
 # 
 # @return [void]
 def extract_artifact
-  case ::File.extname(cached_tar_path)
-  when /tar.gz|tgz|tar|tar.bz2|tbz/
-    execute "extract_artifact" do
-      command "tar xf #{cached_tar_path} -C #{release_path}"
-      user new_resource.owner
-      group new_resource.group
+  recipe_eval do
+    case ::File.extname(cached_tar_path)
+    when /tar.gz|tgz|tar|tar.bz2|tbz/
+      execute "extract_artifact" do
+        command "tar xf #{cached_tar_path} -C #{release_path}"
+        user new_resource.owner
+        group new_resource.group
+      end
+    when /zip|war|jar/
+      package "unzip"
+      execute "extract_artifact" do
+        command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
+        user new_resource.owner
+        group new_resource.group
+      end
+    else
+      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are"
     end
-  when /zip|war|jar/
-    package "unzip"
-    execute "extract_artifact" do
-      command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
-      user new_resource.owner
-      group new_resource.group
-    end
-  else
-    Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are"
   end
 end
 
@@ -151,10 +161,12 @@ end
 # 
 # @return [void]
 def copy_artifact
-  execute "copy artifact" do
-    command "cp #{cached_tar_path} #{release_path}"
-    user new_resource.owner
-    group new_resource.group
+  recipe_eval do
+    execute "copy artifact" do
+      command "cp #{cached_tar_path} #{release_path}"
+      user new_resource.owner
+      group new_resource.group
+    end
   end
 end
 
@@ -297,36 +309,42 @@ private
   end
 
   def setup_deploy_directories!
-    [ version_container_path, release_path, shared_path ].each do |path|
-      directory path do
-        owner new_resource.owner
-        group new_resource.group
-        mode '0755'
-        recursive true
+    recipe_eval do
+      [ version_container_path, release_path, shared_path ].each do |path|
+        directory path do
+          owner new_resource.owner
+          group new_resource.group
+          mode '0755'
+          recursive true
+        end
       end
     end
   end
 
   def setup_shared_directories!
-    new_resource.shared_directories.each do |dir|
-      directory "#{shared_path}/#{dir}" do
-        owner new_resource.owner
-        group new_resource.group
-        mode '0755'
-        recursive true
+    recipe_eval do
+      new_resource.shared_directories.each do |dir|
+        directory "#{shared_path}/#{dir}" do
+          owner new_resource.owner
+          group new_resource.group
+          mode '0755'
+          recursive true
+        end
       end
     end
   end
 
   def retrieve_artifact!
-    if from_http?(new_resource.artifact_location)
-      retrieve_from_http
-    elsif from_nexus?(new_resource.artifact_location)
-      retrieve_from_nexus
-    elsif ::File.exist?(new_resource.artifact_location)
-      retrieve_from_local
-    else
-      raise "Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
+    recipe_eval do
+      if from_http?(new_resource.artifact_location)
+        retrieve_from_http
+      elsif from_nexus?(new_resource.artifact_location)
+        retrieve_from_nexus
+      elsif ::File.exist?(new_resource.artifact_location)
+        retrieve_from_local
+      else
+        Chef::Application.fatal! "Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
+      end
     end
   end
 
@@ -355,11 +373,9 @@ private
   end
 
   def retrieve_from_nexus
-
     ruby_block "retrieve from nexus" do
       block do
         require 'nexus_cli'
-
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
           remote = NexusCli::RemoteFactory.create(config, false)
@@ -392,12 +408,8 @@ private
   end
 
   def write_manifest
-    #ruby_block "write_manifest" do
-      #block do
-        manifest = create_manifest(release_path)
-        require 'yaml'
-        Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
-        ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
-      #end
-    #end
+    manifest = create_manifest(release_path)
+    require 'yaml'
+    Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
+    ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
   end
