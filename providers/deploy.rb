@@ -65,7 +65,7 @@ def load_current_resource
   @previous_release_path  = get_previous_release_path
   @previous_versions      = get_previous_versions
   @manifest_file          = ::File.join(@release_path, "manifest.yaml")
-  @deploy                 = @new_resource.force
+  @deploy                 = false
   @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
@@ -75,28 +75,17 @@ action :deploy do
   delete_previous_versions(:keep => new_resource.keep)
   setup_deploy_directories!
   setup_shared_directories!
-  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-  Chef::Log.info "Lets see! #{::File.exists?(release_path)}"
-  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
 
   @deploy = manifest_differences?
-
-  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
-  Chef::Log.info "manifest_differences? #{deploy?}"
-  Chef::Log.info "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&"
 
   retrieve_artifact!
 
   recipe_eval(&new_resource.before_deploy) if new_resource.before_deploy
 
-  if deploy?
+  if deploy? || new_resource.force
     recipe_eval(&new_resource.before_extract) if new_resource.before_extract
     if new_resource.is_tarball
       extract_artifact
-
-      Chef::Log.info "(*************************************************)"
-      Chef::Log.info "did it extract? #{::File.exist?(::File.join(release_path, 'log4j.xml'))}"
-      Chef::Log.info "(*************************************************)"
     else
       copy_artifact
     end
@@ -109,17 +98,25 @@ action :deploy do
 
   recipe_eval(&new_resource.configure) if new_resource.configure
 
-  if deploy? && new_resource.should_migrate
+  if (deploy? || new_resource.force) && new_resource.should_migrate
     recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
-    recipe_eval(&new_resource.migrate) if new_resource.should_migrate
+    recipe_eval(&new_resource.migrate)
     recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
   end
 
-  if deploy? || manifest_differences?
+  if deploy? || new_resource.force || manifest_differences?
     recipe_eval(&new_resource.restart) if new_resource.restart
   end
 
   recipe_eval(&new_resource.after_deploy) if new_resource.after_deploy
+
+  recipe_eval do
+    link new_resource.current_path do
+      to release_path
+      user new_resource.owner
+      group new_resource.group
+    end
+  end
 
   recipe_eval { write_manifest }
 
