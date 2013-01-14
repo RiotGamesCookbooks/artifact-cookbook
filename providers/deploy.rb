@@ -205,33 +205,37 @@ private
 
   def delete_previous_versions(options = {})
     recipe_eval do
-      keep = options[:keep] || 0
-      delete_first = total = previous_version_paths.length
+      ruby_block "delete_previous_versions" do
+        block do
+          def delete_cached_files_for(version)
+            FileUtils.rm_rf ::File.join(artifact_root, version)
+          end
 
-      if total == 0 || total <= keep
-        return true
-      end
+          def delete_release_path_for(version)
+            FileUtils.rm_rf ::File.join(new_resource.deploy_to, 'releases', version)
+          end
 
-      delete_first -= keep
+          keep = options[:keep] || 0
+          delete_first = total = previous_version_paths.length
 
-      Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
+          if total == 0 || total <= keep
+            return true
+          end
 
-      to_delete = previous_version_paths.shift(delete_first)
+          delete_first -= keep
 
-      to_delete.each do |version|
-        delete_cached_files_for(version.basename)
-        delete_release_path_for(version.basename)
-        Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
+          Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
+
+          to_delete = previous_version_paths.shift(delete_first)
+
+          to_delete.each do |version|
+            delete_cached_files_for(version.basename)
+            delete_release_path_for(version.basename)
+            Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
+          end
+        end
       end
     end
-  end
-
-  def delete_cached_files_for(version)
-    FileUtils.rm_rf ::File.join(artifact_root, version)
-  end
-
-  def delete_release_path_for(version)
-    FileUtils.rm_rf ::File.join(new_resource.deploy_to, 'releases', version)
   end
 
   def manifest_differences?
