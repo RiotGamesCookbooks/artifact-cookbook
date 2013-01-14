@@ -25,11 +25,12 @@ require 'yaml'
 attr_reader :release_path
 attr_reader :current_path
 attr_reader :shared_path
-attr_reader :previous_release_path
+attr_reader :current_release_path
 attr_reader :artifact_root
 attr_reader :version_container_path
 attr_reader :manifest_file
-attr_reader :previous_versions
+attr_reader :previous_version_paths
+attr_reader :previous_version_numbers
 attr_reader :artifact_location
 attr_reader :artifact_version
 
@@ -57,16 +58,17 @@ def load_current_resource
     @artifact_location = @new_resource.artifact_location
   end
 
-  @release_path           = get_release_path
-  @current_path           = @new_resource.current_path
-  @shared_path            = @new_resource.shared_path
-  @artifact_root          = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
-  @version_container_path = ::File.join(@artifact_root, artifact_version)
-  @previous_release_path  = get_previous_release_path
-  @previous_versions      = get_previous_versions
-  @manifest_file          = ::File.join(@release_path, "manifest.yaml")
-  @deploy                 = false
-  @current_resource       = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
+  @release_path             = get_release_path
+  @current_path             = @new_resource.current_path
+  @shared_path              = @new_resource.shared_path
+  @artifact_root            = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
+  @version_container_path   = ::File.join(@artifact_root, artifact_version)
+  @current_release_path     = get_current_release_path
+  @previous_version_paths   = get_previous_version_paths
+  @previous_version_numbers = get_previous_version_numbers
+  @manifest_file            = ::File.join(@release_path, "manifest.yaml")
+  @deploy                   = false
+  @current_resource         = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
@@ -204,7 +206,7 @@ private
   def delete_previous_versions(options = {})
     recipe_eval do
       keep = options[:keep] || 0
-      delete_first = total = previous_versions.length
+      delete_first = total = previous_version_paths.length
 
       if total == 0 || total <= keep
         return true
@@ -214,7 +216,7 @@ private
 
       Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
 
-      to_delete = previous_versions.shift(delete_first)
+      to_delete = previous_version_paths.shift(delete_first)
 
       to_delete.each do |version|
         delete_cached_files_for(version.basename)
@@ -233,21 +235,30 @@ private
   end
 
   def manifest_differences?
-    if get_previous_release_version != new_resource.version
-      Chef::Log.info "No current version installed for #{new_resource.name}." if get_previous_release_version.nil?
-      Chef::Log.info "Currently installed version of artifact is #{get_previous_release_version}." unless get_previous_release_version.nil?
+    if get_current_release_version.nil?
+      Chef::Log.info "No current version installed for #{new_resource.name}."
       Chef::Log.info "Installing version, #{artifact_version} for #{new_resource.name}."
       return true
-    end
-    if previous_release_path.nil? || !::File.exists?(::File.join(previous_release_path, "manifest.yaml"))
-      Chef::Log.warn "No manifest file found for current version, assuming there are differences."
+    elsif artifact_version != get_current_release_version && !previous_version_numbers.include?(artifact_version)
+      Chef::Log.info "Currently installed version of artifact is #{get_current_release_version}."
+      Chef::Log.info "Version #{artifact_version} for #{new_resource.name} has not already been installed."
+      Chef::Log.info "Installing version, #{artifact_version} for #{new_resource.name}."
       return true
+    elsif artifact_version != get_current_release_version && previous_version_numbers.include?(artifact_version)
+      Chef::Log.info "Version #{artifact_version} of artifact has already been installed."
+      return has_manifest_changed?
+    elsif artifact_version == get_current_release_version
+      Chef::Log.info "Currently installed version of artifact is #{artifact_version}."
+      return has_manifest_changed?
     end
+  end
 
+  def has_manifest_changed?
     Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
     original_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
-    
-    current_manifest = create_manifest(release_path)
+  
+    current_manifest = generate_manifest(release_path)
+    Chef::Log.info "Comparing current manifest from #{release_path} with regenerated manifest from #{release_path}."
     !!original_manifest.find { |key, value| !current_manifest.has_key?(key) || value != current_manifest[key] }
   end
 
@@ -255,15 +266,15 @@ private
     @deploy
   end
 
-  def get_previous_release_path
+  def get_current_release_path
     if ::File.exists?(current_path)
       ::File.readlink(current_path)
     end
   end
 
-  def get_previous_release_version
+  def get_current_release_version
     if ::File.exists?(current_path)
-      ::File.basename(get_previous_release_path)
+      ::File.basename(get_current_release_path)
     end
   end
 
@@ -280,14 +291,18 @@ private
     ::File.join(new_resource.deploy_to, "releases", artifact_version)
   end
 
-  def get_previous_versions
-    versions = Dir[::File.join(artifact_root, '**')].collect do |v|
+  def get_previous_version_paths
+    versions = Dir[::File.join(new_resource.deploy_to, "releases", '**')].collect do |v|
       Pathname.new(v)
     end
 
-    versions.reject! { |v| v.to_s == version_container_path }
+    versions.reject! { |v| v.basename.to_s == get_current_release_version }
 
     versions.sort_by(&:mtime)
+  end
+
+  def get_previous_version_numbers
+    previous_version_paths.collect { |version| version.basename.to_s}
   end
 
   def symlink_it_up!
@@ -392,7 +407,7 @@ private
     end
   end
 
-  def create_manifest(files_path)
+  def generate_manifest(files_path)
     require 'digest'
     Chef::Log.info "Generating manifest for files in #{files_path}"
     files_in_release_path = nil
@@ -407,7 +422,7 @@ private
   end
 
   def write_manifest
-    manifest = create_manifest(release_path)
+    manifest = generate_manifest(release_path)
     require 'yaml'
     Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
     ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
