@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Recipe:: default
+# Recipe:: pre_seed_tests
 #
 # Copyright 2012, YOUR_COMPANY_NAME
 #
@@ -20,5 +20,11 @@ artifact_deploy "artifact_test" do
   owner "artifact"
   group "artifact"
 
-  action :deploy
+  action :pre_seed
+end
+
+ruby_block "make sure pre_seed worked" do
+  block do
+    Chef::Application.fatal! "pre_seed failed!" unless ::File.exists?(::File.join("/srv/artifact_test", "releases", node[:artifact_test][:version]))
+  end
 end

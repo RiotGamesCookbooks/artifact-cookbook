@@ -29,7 +29,6 @@ class Chef
         config
       end
 
-
       # Uses the provided parameters to make a call to the data bag
       # configured Nexus server to have the server tell us what the
       # actual version number is when 'latest' is given.
@@ -68,8 +67,9 @@ class Chef
       # 
       # @return [String] the currently deployed version of the given artifact
       def get_current_deployed_version(deploy_to_dir)
-        if ::File.exists?(::File.join(deploy_to_dir, "current"))
-          ::File.basename(::File.readlink(::File.join(deploy_to_dir, "current")))
+        current_dir = ::File.join(deploy_to_dir, "current")
+        if ::File.exists?(current_dir)
+          ::File.basename(::File.readlink(current_dir))
         end
       end
     end

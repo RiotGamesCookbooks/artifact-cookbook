@@ -20,7 +20,8 @@
 
 require 'uri'
 
-actions :deploy
+actions :deploy, :pre_seed
+default_action :deply
 
 attribute :artifact_name, :kind_of      => String, :required => true, :name_attribute => true
 attribute :artifact_location, :kind_of  => String
