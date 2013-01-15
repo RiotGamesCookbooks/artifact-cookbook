@@ -208,6 +208,15 @@ end
 
 private
 
+  # Deletes released versions of the artifact when the number of 
+  # released versions exceeds the :keep value.
+  #
+  # @param [Hash] options
+  #
+  # @option options [Integer] :keep
+  #   the number of releases to keep
+  # 
+  # @return [type] [description]
   def delete_previous_versions(options = {})
     recipe_eval do
       ruby_block "delete_previous_versions" do
@@ -243,6 +252,10 @@ private
     end
   end
 
+  # Checks the various cases of whether an artifact has or has not been installed. If the artifact
+  # has been installed let #has_manifest_changed? determine the return value.
+  # 
+  # @return [Boolean]
   def manifest_differences?
     if get_current_release_version.nil?
       Chef::Log.info "No current version installed for #{new_resource.name}."
@@ -262,6 +275,11 @@ private
     end
   end
 
+  # Loads the saved manifest.yaml file and generates a new, current manifest. The
+  # saved manifest is then parsed through looking for files that may have been deleted,
+  # added, or modified.
+  # 
+  # @return [Boolean]
   def has_manifest_changed?
     Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
     saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
@@ -280,16 +298,19 @@ private
     end
   end
 
+  # @return [Boolean] the deploy instance variable
   def deploy?
     @deploy
   end
 
+  # @return [String] the file the current symlink points to
   def get_current_release_path
     if ::File.exists?(current_path)
       ::File.readlink(current_path)
     end
   end
 
+  # @return [String] the current version the current symlink points to
   def get_current_release_version
     if ::File.exists?(current_path)
       ::File.basename(get_current_release_path)
@@ -309,6 +330,11 @@ private
     ::File.join(new_resource.deploy_to, "releases", artifact_version)
   end
 
+  # Searches the releases directory and returns an Array of version folders. After
+  # rejecting the current release version from the Array, the array is sorted by mtime
+  # and returned.
+  # 
+  # @return [Array] the mtime sorted array of currently installed versions
   def get_previous_version_paths
     versions = Dir[::File.join(new_resource.deploy_to, "releases", '**')].collect do |v|
       Pathname.new(v)
@@ -319,10 +345,18 @@ private
     versions.sort_by(&:mtime)
   end
 
+  # Convenience method for returning just the version numbers of 
+  # the currently installed versions of the artifact.
+  # 
+  # @return [Array] the currently installed version numbers
   def get_previous_version_numbers
     previous_version_paths.collect { |version| version.basename.to_s}
   end
 
+  # Creates directories and symlinks as defined by the symlinks
+  # attribute of the resource.
+  # 
+  # @return [void]
   def symlink_it_up!
     new_resource.symlinks.each do |key, value|
       directory "#{new_resource.shared_path}/#{key}" do
@@ -340,6 +374,10 @@ private
     end
   end
 
+  # Creates directories that are necessary for installing
+  # the artifact.
+  # 
+  # @return [void]
   def setup_deploy_directories!
     recipe_eval do
       [ version_container_path, release_path, shared_path ].each do |path|
@@ -353,6 +391,10 @@ private
     end
   end
 
+  # Creates directories that are defined in the shared_directories
+  # attribute of the resource.
+  # 
+  # @return [void]
   def setup_shared_directories!
     recipe_eval do
       new_resource.shared_directories.each do |dir|
@@ -366,6 +408,10 @@ private
     end
   end
 
+  # Retrieves the configured artifact based on the
+  # artifact_location instance variable.
+  # 
+  # @return [void]
   def retrieve_artifact!
     recipe_eval do
       if from_http?(new_resource.artifact_location)
@@ -380,18 +426,38 @@ private
     end
   end
 
+  # Returns true when the artifact is believed to be from an
+  # http source.
+  # 
+  # @param  location [String] the artifact_location
+  # 
+  # @return [Boolean] true when the location matches http or https.
   def from_http?(location)
     location =~ URI::regexp(['http', 'https'])
   end
 
+  # Returns true when the artifact is believed to be from a
+  # Nexus source.
+  #
+  # @param  location [String] the artifact_location
+  # 
+  # @return [Boolean] true when the location is a colon-separated value
   def from_nexus?(location)
     location.split(":").length > 2
   end
 
+  # Convenience method for determining whether a String is "latest"
+  # 
+  # @param  version [String] the version of the configured artifact to check
+  # 
+  # @return [Boolean] true when version matches (case-insensitive) "latest"
   def latest?(version)
     version.casecmp("latest") == 0
   end
 
+  # Defines a resource call for downloading the remote artifact.
+  # 
+  # @return [void]
   def retrieve_from_http
     remote_file cached_tar_path do
       source new_resource.artifact_location
@@ -404,6 +470,9 @@ private
     end
   end
 
+  # Defines a ruby_block resource call to download an artifact from Nexus.
+  # 
+  # @return [void]
   def retrieve_from_nexus
     ruby_block "retrieve from nexus" do
       block do
@@ -417,6 +486,9 @@ private
     end
   end
 
+  # Defines a resource call for a file already on the file system.
+  # 
+  # @return [void]
   def retrieve_from_local
     file cached_tar_path do
       content ::File.open(new_resource.artifact_location).read
@@ -425,6 +497,13 @@ private
     end
   end
 
+  # Generates a manifest for all the files underneath the given files_path. SHA1 digests will be
+  # generated for all files under the given files_path with the exception of directories and the 
+  # manifest.yaml file itself.
+  # 
+  # @param  files_path [String] a path to the files that a manfiest will be generated for
+  # 
+  # @return [Hash] a mapping of file_path => SHA1 of that file
   def generate_manifest(files_path)
     require 'digest'
     Chef::Log.info "Generating manifest for files in #{files_path}"
@@ -435,6 +514,10 @@ private
     end    
   end
 
+  # Generates a manfiest Hash for the files under the release_path and
+  # writes a YAML dump of the created Hash to manifest_file.
+  # 
+  # @return [String] a String of the YAML dumped to the manifest.yaml file
   def write_manifest
     manifest = generate_manifest(release_path)
     require 'yaml'
