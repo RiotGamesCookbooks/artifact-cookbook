@@ -259,11 +259,20 @@ private
 
   def has_manifest_changed?
     Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
-    original_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
+    saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
   
     current_manifest = generate_manifest(release_path)
-    Chef::Log.info "Comparing current manifest from #{release_path} with regenerated manifest from #{release_path}."
-    !!original_manifest.find { |key, value| !current_manifest.has_key?(key) || value != current_manifest[key] }
+    Chef::Log.info "Comparing saved manifest from #{release_path} with regenerated manifest from #{release_path}."
+    differences = saved_manifest.find { |key, value| !current_manifest.has_key?(key) || value != current_manifest[key] }
+    if differences
+      Chef::Log.info "Saved manifest from #{release_path} differs from regenerated manifest."
+      Chef::Log.info "Deploying."
+      return true
+    else
+      Chef::Log.info "Saved manifest from #{release_path} is the same as regenerated manifest."
+      Chef::Log.info "Not Deploying."
+      return false
+    end
   end
 
   def deploy?
@@ -414,15 +423,11 @@ private
   def generate_manifest(files_path)
     require 'digest'
     Chef::Log.info "Generating manifest for files in #{files_path}"
-    files_in_release_path = nil
-    Dir.chdir(files_path) do |path|
-      files_in_release_path = Dir.glob("**/*").reject { |file| ::File.directory?(file) || file == "manifest.yaml" }
-    end
-    
-    files_in_release_path.inject(Hash.new) do |map, file|
-      map[file] = Digest::SHA1.hexdigest(file)
-      map
-    end
+    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file == "manifest.yaml" }
+
+    {}.tap do |map|
+      files_in_release_path.each { |file| map[file] = Digest::SHA1.hexdigest(file) }
+    end    
   end
 
   def write_manifest
