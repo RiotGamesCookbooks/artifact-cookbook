@@ -15,15 +15,17 @@ the package and managed in a deploy directory in the same fashion you've seen in
 deploy resource or Capistrano's default deploy strategy.
 
 ### Actions
-Action  | Description                 | Default
-------- |-------------                |---------
-deploy  | Deploy the artifact package | Yes
+Action   | Description                   | Default
+-------  |-------------                  |---------
+deploy   | Deploy the artifact package   | Yes
+pre_seed | Pre-seed the artifact package |
 
 ### Attributes
 Attribute           | Description                                                                          |Type     | Default
 ---------           |-------------                                                                         |-----    |--------
 artifact_name       | Name of the artifact package to deploy                                               | String  | name
 artifact_location   | URL, local path, or Maven identifier of the artifact package to download             | String  |
+artifact_checksum   | The SHA256 checksum of the artifact package that is being downloaded                 | String  |
 deploy_to           | Deploy directory where releases are stored and linked                                | String  |
 version             | Version of the artifact being deployed                                               | String  |
 owner               | Owner of files created and modified                                                  | String  |
@@ -31,15 +33,24 @@ group               | Group of files created and modified                       
 environment         | An environment hash used by resources within the provider                            | Hash    | Hash.new
 symlinks            | A hash that maps files in the shared directory to their paths in the current release | Hash    | Hash.new
 shared_directories  | Directories to be created in the shared folder                                       | Array   | %w{ log pids }
-before_extract      | A proc containing resources to be executed before the artifact package is extracted  | Proc    |
-before_migrate      | A proc containing resources to be executed before the migration Proc                 | Proc    |
-after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
-migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
-restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
-before_symlink      | A proc containing resources to be executed before the symlinks are created           | Proc    |
 force               | Forcefully deploy an artifact even if the artifact has already been deployed         | Boolean | false
 should_migrate      | Notify the provider if it should perform application migrations                      | Boolean | false
 keep                | Specify a number of artifacts deployments to keep on disk                            | Integer | 2
+before_deploy       | A proc containing resources to be executed before the deploy process begins          | Proc    |
+before_extract      | A proc containing resources to be executed before the artifact package is extracted  | Proc    |
+after_extract       | A proc containing resources to be executed after the artifac package is extracted    | Proc    |
+before_symlink      | A proc containing resources to be executed before the symlinks are created           | Proc    |
+after_symlink       | A proc containing resources to be executed after the symlinks are created            | Proc    |
+configure           | A proc containing resources to be executed to configure the artifact package         | Proc    |
+before_migrate      | A proc containing resources to be executed before the migration Proc                 | Proc    |
+migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
+after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
+restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
+after_deploy        | A proc containing resources to be executed after the deploy process ends             | Proc    |
+
+### Deploy Flow, the Manifest, and Procs
+
+
 
 ### Nexus Usage
 
