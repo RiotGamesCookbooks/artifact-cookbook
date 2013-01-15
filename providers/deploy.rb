@@ -112,7 +112,7 @@ end
 
 def extract_artifact
   execute "extract_artifact" do
-    command "tar xzf #{cached_tar_path} -C #{release_path}"
+    command "tar #{tar_options} #{cached_tar_path} -C #{release_path}"
     user new_resource.owner
     group new_resource.group
   end
@@ -145,8 +145,16 @@ def artifact_filename
   end
 end
 
-private
+def tar_options
+  extract_option = case `file #{cached_tar_path}`.split(':').last
+                   when /tar/ then ""
+                   when /bzip2/ then "j"
+                   else "z" # defaults to gzip
+                   end
+  "xv#{extract_option}f"
+end
 
+private
   def delete_previous_versions(options = {})
     keep = options[:keep] || 0
     delete_first = total = previous_versions.length
