@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Artifact-cookbook : Provides your cookbooks with the Artifact Deploy LWRP" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Artifact-cookbook</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/RiotGames/artifact-cookbook">View on GitHub</a>
+
+          <h1 id="project_title">Artifact-cookbook</h1>
+          <h2 id="project_tagline">Provides your cookbooks with the Artifact Deploy LWRP</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/RiotGames/artifact-cookbook/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/RiotGames/artifact-cookbook/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>Artifact cookbook</h1>
+
+<p>Provides your cookbooks with the Artifact Deploy LWRP</p>
+
+<h1>Requirements</h1>
+
+<ul>
+<li>Chef 10</li>
+</ul><h1>Resources / Providers</h1>
+
+<h2>artifact_deploy</h2>
+
+<p>Deploys a collection of build artifacts packaged into a tar ball. Artifacts are extracted from
+the package and managed in a deploy directory in the same fashion you've seen in the Opscode
+deploy resource or Capistrano's default deploy strategy.</p>
+
+<h3>Actions</h3>
+
+<table>
+<tr>
+<th>Action</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td>deploy</td>
+<td>Deploy the artifact package</td>
+<td>Yes</td>
+</tr>
+</table><h3>Attributes</h3>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Description</th>
+<th>Type</th>
+<th>Default</th>
+</tr>
+<tr>
+<td>artifact_name</td>
+<td>Name of the artifact package to deploy</td>
+<td>String</td>
+<td>name</td>
+</tr>
+<tr>
+<td>artifact_location</td>
+<td>URL, local path, or Maven identifier of the artifact package to download</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>deploy_to</td>
+<td>Deploy directory where releases are stored and linked</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>version</td>
+<td>Version of the artifact being deployed</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>owner</td>
+<td>Owner of files created and modified</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>group</td>
+<td>Group of files created and modified</td>
+<td>String</td>
+<td></td>
+</tr>
+<tr>
+<td>environment</td>
+<td>An environment hash used by resources within the provider</td>
+<td>Hash</td>
+<td>Hash.new</td>
+</tr>
+<tr>
+<td>symlinks</td>
+<td>A hash that maps files in the shared directory to their paths in the current release</td>
+<td>Hash</td>
+<td>Hash.new</td>
+</tr>
+<tr>
+<td>shared_directories</td>
+<td>Directories to be created in the shared folder</td>
+<td>Array</td>
+<td>%w{ log pids }</td>
+</tr>
+<tr>
+<td>before_extract</td>
+<td>A proc containing resources to be executed before the artifact package is extracted</td>
+<td>Proc</td>
+<td></td>
+</tr>
+<tr>
+<td>before_migrate</td>
+<td>A proc containing resources to be executed before the migration Proc</td>
+<td>Proc</td>
+<td></td>
+</tr>
+<tr>
+<td>after_migrate</td>
+<td>A proc containing resources to be executed after the migration Proc</td>
+<td>Proc</td>
+<td></td>
+</tr>
+<tr>
+<td>migrate</td>
+<td>A proc containing resources to be executed during the migration stage</td>
+<td>Proc</td>
+<td></td>
+</tr>
+<tr>
+<td>restart_proc</td>
+<td>A proc containing resources to be executed at the end of a successful deploy</td>
+<td>Proc</td>
+<td></td>
+</tr>
+<tr>
+<td>before_symlink</td>
+<td>A proc containing resources to be executed before the symlinks are created</td>
+<td>Proc</td>
+<td></td>
+</tr>
+<tr>
+<td>force</td>
+<td>Forcefully deploy an artifact even if the artifact has already been deployed</td>
+<td>Boolean</td>
+<td>false</td>
+</tr>
+<tr>
+<td>should_migrate</td>
+<td>Notify the provider if it should perform application migrations</td>
+<td>Boolean</td>
+<td>false</td>
+</tr>
+<tr>
+<td>keep</td>
+<td>Specify a number of artifacts deployments to keep on disk</td>
+<td>Integer</td>
+<td>2</td>
+</tr>
+</table><h3>Nexus Usage</h3>
+
+<p>In order to deploy an artifact from a Nexus repository, you must first create
+an <a href="http://wiki.opscode.com/display/chef/Encrypted+Data+Bags">encrypted data bag</a> that contains
+the credentials for your Nexus repository.</p>
+
+<pre><code>knife data bag create artifact nexus -c &lt;your chef config&gt; --secret-file=&lt;your secret file&gt;
+</code></pre>
+
+<p>Your data bag should look like the following:</p>
+
+<pre><code>{
+  "id": "nexus",
+  "your_chef_environment": {
+    "username": "nexus_user",
+    "password": "nexus_user_password",
+    "url": "http://nexus.yourcompany.com:8081/nexus/",
+    "repository": "your_repository"
+  }
+}
+</code></pre>
+
+<p>After your encrypted data bag is setup you can use Maven identifiers
+for your artifact_location. If many environments share the same configuration,
+you can use "*" as a wildcard environment name.</p>
+
+<h3>Examples</h3>
+
+<h5>Deploying a Rails application</h5>
+
+<pre><code>artifact_deploy "pvpnet" do
+  version "1.0.0"
+  artifact_location "https://artifacts.riotgames.com/pvpnet-1.0.0.tar.gz"
+  deploy_to "/srv/pvpnet"
+  owner "riot"
+  group "riot"
+  environment { 'RAILS_ENV' =&gt; 'production' }
+  shared_directories %w{ data log pids system vendor_bundle assets }
+
+  before_migrate Proc.new {
+    template "#{shared_path}/database.yml" do
+      source "database.yml.erb"
+      owner node[:merlin][:owner]
+      group node[:merlin][:group]
+      mode "0644"
+      variables(
+        :environment =&gt; environment,
+        :options =&gt; database_options
+      )
+    end
+
+    execute "bundle install --local --path=vendor/bundle --without test development cucumber --binstubs" do
+      environment { 'RAILS_ENV' =&gt; 'production' }
+      user "riot"
+      group "riot"
+    end
+  }
+
+  migrate Proc.new {
+    execute "bundle exec rake db:migrate" do
+      environment { 'RAILS_ENV' =&gt; 'production' }
+      user "riot"
+      group "riot"
+    end
+  }
+
+  after_migrate Proc.new {
+    ruby_block "remove_run_migrations" do
+      block do
+        Chef::Log.info("Migrations were run, removing role[pvpnet_run_migrations]")
+        node.run_list.remove("role[pvpnet_run_migrations]")
+      end
+    end
+  }
+
+  restart_proc Proc.new {
+    bluepill_service 'pvpnet-unicorn' do 
+      action :restart
+    end
+  }
+
+  keep 2
+  should_migrate true(node[:pvpnet][:should_migrate] ? true : false)
+  force (node[:pvpnet][:force_deploy] ? true : false)
+  action :deploy
+end
+</code></pre>
+
+<h1>Testing</h1>
+
+<p>A sample cookbook is available in <code>fixtures</code>. You can package it with mkartifact.sh, and
+upload it to Nexus as artifact_cookbook:test:1.2.3:tgz.</p>
+
+<p>Set the artifact_test_location and artifact_test_version environment variables when running
+vagrant to change how they'll be provisioned. Default is 1.2.3 from a file URL.</p>
+
+<ul>
+<li>artifact_test_location=artifact_cookbook:test:1.2.3:tgz artifact_test_version=1.2.3 bundle exec vagrant</li>
+</ul><h1>Releasing</h1>
+
+<ol>
+<li>
+<p>Install the prerequisite gems</p>
+
+<pre><code>$ gem install chef
+$ gem install thor
+</code></pre>
+</li>
+<li><p>Increment the version number in the metadata.rb file</p></li>
+<li>
+<p>Run the Thor release task to create a tag and push to the community site</p>
+
+<pre><code>$ thor release
+</code></pre>
+</li>
+</ol><h1>License and Author</h1>
+
+<p>Author:: Jamie Winsor (<a href="mailto:jamie@vialstudios.com">jamie@vialstudios.com</a>)</p>
+
+<p>Copyright 2012, Riot Games</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Artifact-cookbook maintained by <a href="https://github.com/RiotGames">RiotGames</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
