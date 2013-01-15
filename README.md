@@ -50,7 +50,33 @@ after_deploy        | A proc containing resources to be executed after the deplo
 
 ### Deploy Flow, the Manifest, and Procs
 
+The deploy flow is outlined in the Artifact Deploy flow chart below. 
 
+![Artifact Deploy](http://riotgames.github.com/artifact-cookbook/images/ArtifactDeploy.png)
+
+The 'happy-path' of this flow is the default path when an artifact has already been deploy - there will be no need to
+execute many of the Procs. That being said, there are a few 'choice' paths through the flow where a Proc may affect the
+flow.
+
+There are two checks in the artifact deploy flow where a *manifest* check is executed - at the beginning, before the *before_deploy* proc,
+and just after the *configure* proc (and after the *migrate* procs). When the latter check returns true, the *restart* proc will execute.
+
+The *manifest* is a YAML file with a mapping of files in the deploy path to their SHA1 checksum. For example:
+
+```
+/srv/artifact_test/releases/2.0.68/log4j.xml: 96be5753fbf845e30b643fa04008f2c4fe6956a7
+/srv/artifact_test/releases/2.0.68/readme.txt: fcb8d816b062565930f19f9bdb954f5ac43c5039
+/srv/artifact_test/releases/2.0.68/my-artifact.jar: 42ad63cc883afad010573d3d8eea4e5a4011e5d4
+```
+
+There are numerous Procs placed throughout the flow of the artifact_deploy resource. They are meant to give the user many different
+ways to configure the artifact and execute resources during the flow. Some good examples include executing a resource to stop a service
+in the *before_deploy* proc, or placing configuration files in the deployed artifact during the *configure* proc.
+
+**Please note** the *before_deploy*, *configure*, and *after_deploy* procs are executed on every Chef run. It is recommended that any *template*
+(or configuration changing resource calls) take place within those procs. In particular, the *configure* proc was added for this very purpose. Following
+this pattern will ensure that the templates will change, and the *restart* proc will execute (perhaps restarting the service the configured artifact provides
+in order to pick up the configuration changes).
 
 ### Nexus Usage
 
