@@ -39,6 +39,10 @@ def load_current_resource
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
   end
 
+  chef_gem "activesupport" do
+    version "3.2.11"
+  end
+
   if from_nexus?(@new_resource.artifact_location)
     %W{libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
       package nokogiri_requirement do
@@ -281,12 +285,15 @@ private
   # 
   # @return [Boolean]
   def has_manifest_changed?
+    require 'active_support/core_ext/hash'
+
     Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
     saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
   
     current_manifest = generate_manifest(release_path)
     Chef::Log.info "Comparing saved manifest from #{release_path} with regenerated manifest from #{release_path}."
-    differences = saved_manifest.find { |key, value| !current_manifest.has_key?(key) || value != current_manifest[key] }
+    
+    differences = !saved_manifest.diff(current_manifest).empty?
     if differences
       Chef::Log.info "Saved manifest from #{release_path} differs from regenerated manifest."
       Chef::Log.info "Deploying."
@@ -443,7 +450,7 @@ private
   # 
   # @return [Boolean] true when the location is a colon-separated value
   def from_nexus?(location)
-    location.split(":").length > 2
+    !from_http?(location) && location.split(":").length > 2
   end
 
   # Convenience method for determining whether a String is "latest"
@@ -507,11 +514,11 @@ private
   def generate_manifest(files_path)
     require 'digest'
     Chef::Log.info "Generating manifest for files in #{files_path}"
-    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file == "manifest.yaml" }
+    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ }
 
     {}.tap do |map|
       files_in_release_path.each { |file| map[file] = Digest::SHA1.hexdigest(file) }
-    end    
+    end
   end
 
   # Generates a manfiest Hash for the files under the release_path and
