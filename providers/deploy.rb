@@ -88,35 +88,35 @@ action :deploy do
 
   retrieve_artifact!
 
-  recipe_eval(&new_resource.before_deploy) if new_resource.before_deploy
+  run_proc(:before_deploy, new_resource.before_deploy)
 
   if deploy? || new_resource.force
-    recipe_eval(&new_resource.before_extract) if new_resource.before_extract
+    run_proc(:before_extract, new_resource.before_extract)
     if new_resource.is_tarball
       extract_artifact
     else
       copy_artifact
     end
-    recipe_eval(&new_resource.after_extract) if new_resource.after_extract
+    run_proc(:after_extract, new_resource.after_extract)
 
-    recipe_eval(&new_resource.before_symlink) if new_resource.before_symlink
+    run_proc(:before_symlink, new_resource.before_symlink)
     symlink_it_up!
-    recipe_eval(&new_resource.after_symlink) if new_resource.after_symlink
+    run_proc(:after_symlink, new_resource.after_symlink)
   end
 
-  recipe_eval(&new_resource.configure) if new_resource.configure
+  run_proc(:configure, new_resource.configure)
 
   if (deploy? || new_resource.force) && new_resource.should_migrate
-    recipe_eval(&new_resource.before_migrate) if new_resource.before_migrate
-    recipe_eval(&new_resource.migrate)
-    recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
+    run_proc(:before_migrate, new_resource.before_migrate)
+    run_proc(:migrate, new_resource.migrate)
+    run_proc(:after_migrate, new_resource.after_migrate)
   end
 
   if deploy? || new_resource.force || manifest_differences? || current_symlink_changing?
-    recipe_eval(&new_resource.restart) if new_resource.restart
+    run_proc(:restart, new_resource.restart)
   end
 
-  recipe_eval(&new_resource.after_deploy) if new_resource.after_deploy
+  run_proc(:after_deploy, new_resource.after_deploy)
 
   recipe_eval do
     link new_resource.current_path do
@@ -214,6 +214,19 @@ end
 
 private
 
+  # A wrapper for running 
+  # 
+  # @param  name [Symbol] the name of the proc being executed
+  # @param  proc [Proc] a proc passed through the configured resource
+  # 
+  # @return [type] [description]
+  def run_proc(name, proc)
+    if proc
+      Chef::Log.info "artifact_deploy[run_proc] Beginning execution of #{name.to_s} proc."
+      recipe_eval(&proc)
+    end
+  end
+
   # Deletes released versions of the artifact when the number of 
   # released versions exceeds the :keep value.
   #
@@ -264,19 +277,19 @@ private
   # @return [Boolean]
   def manifest_differences?
     if get_current_release_version.nil?
-      Chef::Log.info "No current version installed for #{new_resource.name}."
-      Chef::Log.info "Installing version, #{artifact_version} for #{new_resource.name}."
+      Chef::Log.info "artifact_deploy[manifest_differences?] No current version installed for #{new_resource.name}."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Installing version, #{artifact_version} for #{new_resource.name}."
       return true
     elsif artifact_version != get_current_release_version && !previous_version_numbers.include?(artifact_version)
-      Chef::Log.info "Currently installed version of artifact is #{get_current_release_version}."
-      Chef::Log.info "Version #{artifact_version} for #{new_resource.name} has not already been installed."
-      Chef::Log.info "Installing version, #{artifact_version} for #{new_resource.name}."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Currently installed version of artifact is #{get_current_release_version}."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Version #{artifact_version} for #{new_resource.name} has not already been installed."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Installing version, #{artifact_version} for #{new_resource.name}."
       return true
     elsif artifact_version != get_current_release_version && previous_version_numbers.include?(artifact_version)
-      Chef::Log.info "Version #{artifact_version} of artifact has already been installed."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Version #{artifact_version} of artifact has already been installed."
       return has_manifest_changed?
     elsif artifact_version == get_current_release_version
-      Chef::Log.info "Currently installed version of artifact is #{artifact_version}."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Currently installed version of artifact is #{artifact_version}."
       return has_manifest_changed?
     end
   end
@@ -289,23 +302,23 @@ private
   def has_manifest_changed?
     require 'active_support/core_ext/hash'
 
-    Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
+    Chef::Log.info "artifact_deploy[has_manifest_changed?] Loading manifest.yaml file from directory: #{release_path}"
     begin
       saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
     rescue Errno::ENOENT
-      Chef::Log.warn "Cannot load manifest.yaml. It may have been deleted. Deploying."
+      Chef::Log.warn "artifact_deploy[has_manifest_changed?] Cannot load manifest.yaml. It may have been deleted. Deploying."
       return true
     end
   
     current_manifest = generate_manifest(release_path)
-    Chef::Log.info "Comparing saved manifest from #{release_path} with regenerated manifest from #{release_path}."
+    Chef::Log.info "artifact_deploy[has_manifest_changed?] Comparing saved manifest from #{release_path} with regenerated manifest from #{release_path}."
     
     differences = !saved_manifest.diff(current_manifest).empty?
     if differences
-      Chef::Log.info "Saved manifest from #{release_path} differs from regenerated manifest. Deploying."
+      Chef::Log.info "artifact_deploy[has_manifest_changed?] Saved manifest from #{release_path} differs from regenerated manifest. Deploying."
       return true
     else
-      Chef::Log.info "Saved manifest from #{release_path} is the same as regenerated manifest. Not Deploying."
+      Chef::Log.info "artifact_deploy[has_manifest_changed?] Saved manifest from #{release_path} is the same as regenerated manifest. Not Deploying."
       return false
     end
   end
@@ -443,7 +456,7 @@ private
       elsif ::File.exist?(new_resource.artifact_location)
         retrieve_from_local
       else
-        Chef::Application.fatal! "Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
+        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
       end
     end
   end
@@ -527,7 +540,7 @@ private
   # 
   # @return [Hash] a mapping of file_path => SHA1 of that file
   def generate_manifest(files_path)
-    Chef::Log.info "Generating manifest for files in #{files_path}"
+    Chef::Log.info "artifact_deploy[generate_manifest] Generating manifest for files in #{files_path}"
     files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ }
 
     {}.tap do |map|
@@ -541,6 +554,6 @@ private
   # @return [String] a String of the YAML dumped to the manifest.yaml file
   def write_manifest
     manifest = generate_manifest(release_path)
-    Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
+    Chef::Log.info "artifact_deploy[write_manifest] Writing manifest.yaml file to #{manifest_file}"
     ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
   end
