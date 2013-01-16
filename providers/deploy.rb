@@ -288,19 +288,22 @@ private
     require 'active_support/core_ext/hash'
 
     Chef::Log.info "Loading manifest.yaml file from directory: #{release_path}"
-    saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
+    begin
+      saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
+    rescue Errno::ENOENT
+      Chef::Log.warn "Cannot load manifest.yaml. It may have been deleted. Deploying."
+      return true
+    end
   
     current_manifest = generate_manifest(release_path)
     Chef::Log.info "Comparing saved manifest from #{release_path} with regenerated manifest from #{release_path}."
     
     differences = !saved_manifest.diff(current_manifest).empty?
     if differences
-      Chef::Log.info "Saved manifest from #{release_path} differs from regenerated manifest."
-      Chef::Log.info "Deploying."
+      Chef::Log.info "Saved manifest from #{release_path} differs from regenerated manifest. Deploying."
       return true
     else
-      Chef::Log.info "Saved manifest from #{release_path} is the same as regenerated manifest."
-      Chef::Log.info "Not Deploying."
+      Chef::Log.info "Saved manifest from #{release_path} is the same as regenerated manifest. Not Deploying."
       return false
     end
   end
