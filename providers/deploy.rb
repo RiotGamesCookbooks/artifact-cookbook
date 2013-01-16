@@ -88,35 +88,35 @@ action :deploy do
 
   retrieve_artifact!
 
-  run_proc(:before_deploy, new_resource.before_deploy)
+  run_proc :before_deploy
 
   if deploy? || new_resource.force
-    run_proc(:before_extract, new_resource.before_extract)
+    run_proc :before_extract
     if new_resource.is_tarball
       extract_artifact
     else
       copy_artifact
     end
-    run_proc(:after_extract, new_resource.after_extract)
+    run_proc :after_extract
 
-    run_proc(:before_symlink, new_resource.before_symlink)
+    run_proc :before_symlink
     symlink_it_up!
-    run_proc(:after_symlink, new_resource.after_symlink)
+    run_proc :after_symlink
   end
 
-  run_proc(:configure, new_resource.configure)
+  run_proc :configure
 
   if (deploy? || new_resource.force) && new_resource.should_migrate
-    run_proc(:before_migrate, new_resource.before_migrate)
-    run_proc(:migrate, new_resource.migrate)
-    run_proc(:after_migrate, new_resource.after_migrate)
+    run_proc :before_migrate
+    run_proc :migrate
+    run_proc :after_migrate
   end
 
   if deploy? || new_resource.force || manifest_differences? || current_symlink_changing?
-    run_proc(:restart, new_resource.restart)
+    run_proc :restart
   end
 
-  run_proc(:after_deploy, new_resource.after_deploy)
+  run_proc :after_deploy
 
   recipe_eval do
     link new_resource.current_path do
@@ -214,16 +214,19 @@ end
 
 private
 
-  # A wrapper for running 
+  # A wrapper that adds debug logging for running a recipe_eval on the 
+  # numerous Proc attributes defined for this resource.
   # 
-  # @param  name [Symbol] the name of the proc being executed
-  # @param  proc [Proc] a proc passed through the configured resource
+  # @param name [Symbol] the name of the proc to execute
   # 
-  # @return [type] [description]
-  def run_proc(name, proc)
+  # @return [void]
+  def run_proc(name)
+    proc = new_resource.send(name)
+    Chef::Log.info "artifact_deploy[run_proc::#{name.to_s}] Determining whether to execute #{name.to_s} proc."
     if proc
-      Chef::Log.info "artifact_deploy[run_proc] Beginning execution of #{name.to_s} proc."
+      Chef::Log.debug "artifact_deploy[run_proc::#{name.to_s}] Beginning execution of #{name.to_s} proc."
       recipe_eval(&proc)
+      Chef::Log.debug "artifact_deploy[run_proc::#{name.to_s}] Ending execution of #{name.to_s} proc."
     end
   end
 

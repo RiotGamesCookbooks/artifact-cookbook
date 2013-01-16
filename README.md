@@ -78,6 +78,21 @@ in the *before_deploy* proc, or placing configuration files in the deployed arti
 this pattern will ensure that the templates will change, and the *restart* proc will execute (perhaps restarting the service the configured artifact provides
 in order to pick up the configuration changes).
 
+Procs can also utilize the internal methods of the provider class, because they are evaluated inside of the instance of the provider class. For example:
+
+```
+artifact_deploy "artifact_test" do
+  # omitted for brevity
+  configure Proc.new {
+    # release_path is an attr_reader on the @release_path variable
+    template "#{release_path}/conf/config.properties" do
+      source "config.properties.erb"
+      variables(:config => config)
+    end
+  }
+end
+```
+
 ### Nexus Usage
 
 In order to deploy an artifact from a Nexus repository, you must first create
@@ -143,6 +158,7 @@ If many environments share the same configuration, you can use "*" as a wildcard
 
       migrate Proc.new {
         execute "bundle exec rake db:migrate" do
+          cwd release_path
           environment { 'RAILS_ENV' => 'production' }
           user "riot"
           group "riot"
