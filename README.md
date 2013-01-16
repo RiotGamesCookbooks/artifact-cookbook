@@ -204,7 +204,7 @@ vagrant to change how they'll be provisioned. Default is 1.2.3 from a file URL.
 
 # License and Author
 
-Author:: Jamie Winsor (<jamie@vialstudios.com>)
+Author:: Jamie Winsor (<jamie@vialstudios.com>)<br/>
 Author:: Kyle Allan (<kallan@riotgames.com>)
 
 Copyright 2013, Riot Games
