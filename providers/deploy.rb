@@ -4,7 +4,8 @@
 #
 # Author:: Jamie Winsor (<jamie@vialstudios.com>)
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# Copyright 2012, Riot Games
+# 
+# Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+require 'digest'
 require 'pathname'
 require 'uri'
 require 'yaml'
@@ -110,7 +112,7 @@ action :deploy do
     recipe_eval(&new_resource.after_migrate) if new_resource.after_migrate
   end
 
-  if deploy? || new_resource.force || manifest_differences?
+  if deploy? || new_resource.force || manifest_differences? || current_symlink_changing?
     recipe_eval(&new_resource.restart) if new_resource.restart
   end
 
@@ -306,6 +308,16 @@ private
       Chef::Log.info "Saved manifest from #{release_path} is the same as regenerated manifest. Not Deploying."
       return false
     end
+  end
+
+  # Checks the not-equality of the current_release_version against the version of
+  # the currently configured resource. Returns true when the current symlink will
+  # be changed to a different release of the artifact at the end of the resource
+  # call.
+  # 
+  # @return [Boolean]
+  def current_symlink_changing?
+    get_current_release_version != ::File.basename(release_path)
   end
 
   # @return [Boolean] the deploy instance variable
@@ -515,7 +527,6 @@ private
   # 
   # @return [Hash] a mapping of file_path => SHA1 of that file
   def generate_manifest(files_path)
-    require 'digest'
     Chef::Log.info "Generating manifest for files in #{files_path}"
     files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ }
 
@@ -530,7 +541,6 @@ private
   # @return [String] a String of the YAML dumped to the manifest.yaml file
   def write_manifest
     manifest = generate_manifest(release_path)
-    require 'yaml'
     Chef::Log.info "Writing manifest.yaml file to #{manifest_file}"
     ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
   end

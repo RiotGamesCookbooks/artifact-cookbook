@@ -58,3 +58,24 @@ ruby_block "make sure get_current_deployed_version library call works and is cor
     Chef::Application.fatal! "get_current_deployed_version is broken or incorrect!" unless Chef::Artifact.get_current_deployed_version("/srv/artifact_test") == "1.0.0"
   end
 end
+
+artifact_deploy "artifact_test" do
+  version           second_artifact_version
+  artifact_location second_artifact_location
+  deploy_to         "/srv/artifact_test"
+  owner             "artifact"
+  group             "artifact"
+
+  restart Proc.new {
+    file "/tmp/#{artifact_filename}" do
+      owner "artifact"
+      group "artifact"
+      mode 0755
+      content "Test!"
+      action :create
+    end
+    
+  }
+
+  action            :deploy
+end
