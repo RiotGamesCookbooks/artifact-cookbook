@@ -99,8 +99,9 @@ Your data bag should look like the following:
     }
 
 After your encrypted data bag is setup you can use Maven identifiers
-for your artifact_location. If many environments share the same configuration,
-you can use "*" as a wildcard environment name.
+for your artifact_location. A Maven identifier is shown as a colon-separated string
+that includes three elemens - groupId:artifactId:extension - ex. "com.my.artifact:my-artifact:tgz". 
+If many environments share the same configuration, you can use "*" as a wildcard environment name.
 
 ### Examples
 
@@ -114,6 +115,12 @@ you can use "*" as a wildcard environment name.
       group "riot"
       environment { 'RAILS_ENV' => 'production' }
       shared_directories %w{ data log pids system vendor_bundle assets }
+
+      before_deploy Proc.new {
+        bluepill_service 'pvpnet-unicorn' do
+          action :stop
+        end
+      }
 
       before_migrate Proc.new {
         template "#{shared_path}/database.yml" do
@@ -151,6 +158,15 @@ you can use "*" as a wildcard environment name.
         end
       }
 
+      configure Proc.new {
+        template "/srv/pvpnet/current/config.properties" do
+          source "config.properties.erb"
+          owner 'riot'
+          group 'riot'
+          variables(:database_config => node[:pvpnet_cookbook][:database_config])
+        end
+      }
+
       restart_proc Proc.new {
         bluepill_service 'pvpnet-unicorn' do 
           action :restart
@@ -158,7 +174,7 @@ you can use "*" as a wildcard environment name.
       }
 
       keep 2
-      should_migrate true(node[:pvpnet][:should_migrate] ? true : false)
+      should_migrate (node[:pvpnet][:should_migrate] ? true : false)
       force (node[:pvpnet][:force_deploy] ? true : false)
       action :deploy
     end
@@ -189,8 +205,9 @@ vagrant to change how they'll be provisioned. Default is 1.2.3 from a file URL.
 # License and Author
 
 Author:: Jamie Winsor (<jamie@vialstudios.com>)
+Author:: Kyle Allan (<kallan@riotgames.com>)
 
-Copyright 2012, Riot Games
+Copyright 2013, Riot Games
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
