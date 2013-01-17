@@ -285,6 +285,7 @@ private
     if new_resource.force
       Chef::Log.info "artifact_deploy[manifest_differences?] Force attribute has been set for #{new_resource.name}."
       Chef::Log.info "artifact_deploy[manifest_differences?] Installing version, #{artifact_version} for #{new_resource.name}."
+      return true
     elsif get_current_release_version.nil?
       Chef::Log.info "artifact_deploy[manifest_differences?] No current version installed for #{new_resource.name}."
       Chef::Log.info "artifact_deploy[manifest_differences?] Installing version, #{artifact_version} for #{new_resource.name}."
