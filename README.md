@@ -52,7 +52,9 @@ after_deploy        | A proc containing resources to be executed after the deplo
 
 The deploy flow is outlined in the Artifact Deploy flow chart below. 
 
-![Artifact Deploy](http://riotgames.github.com/artifact-cookbook/images/ArtifactDeploy.png)
+![Artifact Deploy](http://riotgames.github.com/artifact-cookbook/images/ArtifactDeployFlow.png)
+
+For a more detailed flow of what happens when we check with `deploy?`, see the [Manifest Differences Flow chart.](http://riotgames.github.com/artifact-cookbook/images/ManifestDifferencesFlow.png)
 
 The 'happy-path' of this flow is the default path when an artifact has already been deploy - there will be no need to
 execute many of the Procs. That being said, there are a few 'choice' paths through the flow where a Proc may affect the
