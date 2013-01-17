@@ -2,7 +2,7 @@
 # Cookbook Name:: artifact_test
 # Recipe:: default
 #
-# Copyright 2012, YOUR_COMPANY_NAME
+# Copyright 2012, Riot Games
 #
 # All rights reserved - Do Not Redistribute
 #

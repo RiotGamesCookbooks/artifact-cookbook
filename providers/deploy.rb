@@ -90,7 +90,7 @@ action :deploy do
 
   run_proc :before_deploy
 
-  if deploy? || new_resource.force
+  if deploy?
     run_proc :before_extract
     if new_resource.is_tarball
       extract_artifact
@@ -106,13 +106,13 @@ action :deploy do
 
   run_proc :configure
 
-  if (deploy? || new_resource.force) && new_resource.should_migrate
+  if deploy? && new_resource.should_migrate
     run_proc :before_migrate
     run_proc :migrate
     run_proc :after_migrate
   end
 
-  if deploy? || new_resource.force || manifest_differences? || current_symlink_changing?
+  if deploy? || manifest_differences? || current_symlink_changing?
     run_proc :restart
   end
 
@@ -222,11 +222,14 @@ private
   # @return [void]
   def run_proc(name)
     proc = new_resource.send(name)
-    Chef::Log.info "artifact_deploy[run_proc::#{name.to_s}] Determining whether to execute #{name.to_s} proc."
+    proc_name = name.to_s
+    Chef::Log.info "artifact_deploy[run_proc::#{proc_name}] Determining whether to execute #{proc_name} proc."
     if proc
-      Chef::Log.debug "artifact_deploy[run_proc::#{name.to_s}] Beginning execution of #{name.to_s} proc."
+      Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Beginning execution of #{proc_name} proc."
       recipe_eval(&proc)
-      Chef::Log.debug "artifact_deploy[run_proc::#{name.to_s}] Ending execution of #{name.to_s} proc."
+      Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Ending execution of #{proc_name} proc."
+    else
+      Chef::Log.info "artifact_deploy[run_proc::#{proc_name}] Skipping execution of #{proc_name} proc because it was not defined."
     end
   end
 
@@ -255,19 +258,19 @@ private
           delete_first = total = previous_version_paths.length
 
           if total == 0 || total <= keep
-            return true
-          end
+            true
+          else
+            delete_first -= keep
 
-          delete_first -= keep
+            Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
 
-          Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
+            to_delete = previous_version_paths.shift(delete_first)
 
-          to_delete = previous_version_paths.shift(delete_first)
-
-          to_delete.each do |version|
-            delete_cached_files_for(version.basename)
-            delete_release_path_for(version.basename)
-            Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
+            to_delete.each do |version|
+              delete_cached_files_for(version.basename)
+              delete_release_path_for(version.basename)
+              Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
+            end
           end
         end
       end
@@ -279,7 +282,10 @@ private
   # 
   # @return [Boolean]
   def manifest_differences?
-    if get_current_release_version.nil?
+    if new_resource.force
+      Chef::Log.info "artifact_deploy[manifest_differences?] Force attribute has been set for #{new_resource.name}."
+      Chef::Log.info "artifact_deploy[manifest_differences?] Installing version, #{artifact_version} for #{new_resource.name}."
+    elsif get_current_release_version.nil?
       Chef::Log.info "artifact_deploy[manifest_differences?] No current version installed for #{new_resource.name}."
       Chef::Log.info "artifact_deploy[manifest_differences?] Installing version, #{artifact_version} for #{new_resource.name}."
       return true
