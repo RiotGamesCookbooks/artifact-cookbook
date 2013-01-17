@@ -1,0 +1,323 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII" />
+<title>
+  File: README
+  
+    &mdash; Documentation by YARD 0.8.3
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+
+  <link rel="stylesheet" href="css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  hasFrames = window.top.frames.main ? true : false;
+  relpath = '';
+  framesUrl = "frames.html#!" + escape(window.location.href);
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index</a> &raquo; 
+    <span class="title">File: README</span>
+  
+
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+      Class List
+    </a>
+  
+    <a class="full_list_link" id="method_list_link"
+        href="method_list.html">
+      Method List
+    </a>
+  
+    <a class="full_list_link" id="file_list_link"
+        href="file_list.html">
+      File List
+    </a>
+  
+</div>
+      <div class="clear"></div>
+    </div>
+
+    <iframe id="search_frame"></iframe>
+
+    <div id="content"><div id='filecontents'><h1>Artifact cookbook</h1>
+
+<p>Provides your cookbooks with the Artifact Deploy LWRP</p>
+
+<h1>Requirements</h1>
+
+<ul>
+<li>Chef 10</li>
+</ul>
+
+<h1>Resources / Providers</h1>
+
+<h2>artifact_deploy</h2>
+
+<p>Deploys a collection of build artifacts packaged into a tar ball. Artifacts are extracted from
+the package and managed in a deploy directory in the same fashion you&#39;ve seen in the Opscode
+deploy resource or Capistrano&#39;s default deploy strategy.</p>
+
+<h3>Actions</h3>
+
+<p>Action   | Description                   | Default
+-------  |-------------                  |---------
+deploy   | Deploy the artifact package   | Yes
+pre_seed | Pre-seed the artifact package |</p>
+
+<h3>Attributes</h3>
+
+<p>Attribute           | Description                                                                          |Type     | Default
+---------           |-------------                                                                         |-----    |--------
+artifact_name       | Name of the artifact package to deploy                                               | String  | name
+artifact_location   | URL, local path, or Maven identifier of the artifact package to download             | String  |
+artifact_checksum   | The SHA256 checksum of the artifact package that is being downloaded                 | String  |
+deploy_to           | Deploy directory where releases are stored and linked                                | String  |
+version             | Version of the artifact being deployed                                               | String  |
+owner               | Owner of files created and modified                                                  | String  |
+group               | Group of files created and modified                                                  | String  |
+environment         | An environment hash used by resources within the provider                            | Hash    | Hash.new
+symlinks            | A hash that maps files in the shared directory to their paths in the current release | Hash    | Hash.new
+shared_directories  | Directories to be created in the shared folder                                       | Array   | %w{ log pids }
+force               | Forcefully deploy an artifact even if the artifact has already been deployed         | Boolean | false
+should_migrate      | Notify the provider if it should perform application migrations                      | Boolean | false
+keep                | Specify a number of artifacts deployments to keep on disk                            | Integer | 2
+before_deploy       | A proc containing resources to be executed before the deploy process begins          | Proc    |
+before_extract      | A proc containing resources to be executed before the artifact package is extracted  | Proc    |
+after_extract       | A proc containing resources to be executed after the artifac package is extracted    | Proc    |
+before_symlink      | A proc containing resources to be executed before the symlinks are created           | Proc    |
+after_symlink       | A proc containing resources to be executed after the symlinks are created            | Proc    |
+configure           | A proc containing resources to be executed to configure the artifact package         | Proc    |
+before_migrate      | A proc containing resources to be executed before the migration Proc                 | Proc    |
+migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
+after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
+restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
+after_deploy        | A proc containing resources to be executed after the deploy process ends             | Proc    |</p>
+
+<h3>Deploy Flow, the Manifest, and Procs</h3>
+
+<p>The deploy flow is outlined in the Artifact Deploy flow chart below. </p>
+
+<p><img src="http://riotgames.github.com/artifact-cookbook/images/ArtifactDeployFlow.png" alt="Artifact Deploy"></p>
+
+<p>For a more detailed flow of what happens when we check with <code>deploy?</code>, see the <a href="http://riotgames.github.com/artifact-cookbook/images/ManifestDifferencesFlow.png">Manifest Differences Flow chart.</a></p>
+
+<p>The &#39;happy-path&#39; of this flow is the default path when an artifact has already been deploy - there will be no need to
+execute many of the Procs. That being said, there are a few &#39;choice&#39; paths through the flow where a Proc may affect the
+flow.</p>
+
+<p>There are two checks in the artifact deploy flow where a <em>manifest</em> check is executed - at the beginning, before the <em>before_deploy</em> proc,
+and just after the <em>configure</em> proc (and after the <em>migrate</em> procs). When the latter check returns true, the <em>restart</em> proc will execute.</p>
+
+<p>The <em>manifest</em> is a YAML file with a mapping of files in the deploy path to their SHA1 checksum. For example:</p>
+
+<pre class="code ruby"><code>/srv/artifact_test/releases/2.0.68/log4j.xml: 96be5753fbf845e30b643fa04008f2c4fe6956a7
+/srv/artifact_test/releases/2.0.68/readme.txt: fcb8d816b062565930f19f9bdb954f5ac43c5039
+/srv/artifact_test/releases/2.0.68/my-artifact.jar: 42ad63cc883afad010573d3d8eea4e5a4011e5d4
+</code></pre>
+
+<p>There are numerous Procs placed throughout the flow of the artifact_deploy resource. They are meant to give the user many different
+ways to configure the artifact and execute resources during the flow. Some good examples include executing a resource to stop a service
+in the <em>before_deploy</em> proc, or placing configuration files in the deployed artifact during the <em>configure</em> proc.</p>
+
+<p><strong>Please note</strong> the <em>before_deploy</em>, <em>configure</em>, and <em>after_deploy</em> procs are executed on every Chef run. It is recommended that any <em>template</em>
+(or configuration changing resource calls) take place within those procs. In particular, the <em>configure</em> proc was added for this very purpose. Following
+this pattern will ensure that the templates will change, and the <em>restart</em> proc will execute (perhaps restarting the service the configured artifact provides
+in order to pick up the configuration changes).</p>
+
+<p>Procs can also utilize the internal methods of the provider class, because they are evaluated inside of the instance of the provider class. For example:</p>
+
+<pre class="code ruby"><code><span class='id identifier rubyid_artifact_deploy'>artifact_deploy</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>artifact_test</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>do</span>
+  <span class='comment'># omitted for brevity
+</span>  <span class='id identifier rubyid_configure'>configure</span> <span class='const'>Proc</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span> <span class='lbrace'>{</span>
+    <span class='comment'># release_path is an attr_reader on the @release_path variable
+</span>    <span class='id identifier rubyid_template'>template</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_release_path'>release_path</span><span class='rbrace'>}</span><span class='tstring_content'>/conf/config.properties</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>do</span>
+      <span class='id identifier rubyid_source'>source</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>config.properties.erb</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id identifier rubyid_variables'>variables</span><span class='lparen'>(</span><span class='symbol'>:config</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_config'>config</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='rbrace'>}</span>
+<span class='kw'>end</span>
+</code></pre>
+
+<h3>Nexus Usage</h3>
+
+<p>In order to deploy an artifact from a Nexus repository, you must first create
+an <a href="http://wiki.opscode.com/display/chef/Encrypted+Data+Bags">encrypted data bag</a> that contains
+the credentials for your Nexus repository.</p>
+
+<pre class="code ruby"><code>knife data bag create artifact nexus -c &lt;your chef config&gt; --secret-file=&lt;your secret file&gt;
+</code></pre>
+
+<p>Your data bag should look like the following:</p>
+
+<pre class="code ruby"><code>{
+  &quot;id&quot;: &quot;nexus&quot;,
+  &quot;your_chef_environment&quot;: {
+    &quot;username&quot;: &quot;nexus_user&quot;,
+    &quot;password&quot;: &quot;nexus_user_password&quot;,
+    &quot;url&quot;: &quot;http://nexus.yourcompany.com:8081/nexus/&quot;,
+    &quot;repository&quot;: &quot;your_repository&quot;
+  }
+}
+</code></pre>
+
+<p>After your encrypted data bag is setup you can use Maven identifiers
+for your artifact_location. A Maven identifier is shown as a colon-separated string
+that includes three elemens - groupId:artifactId:extension - ex. &quot;com.my.artifact:my-artifact:tgz&quot;. 
+If many environments share the same configuration, you can use &quot;*&quot; as a wildcard environment name.</p>
+
+<h3>Examples</h3>
+
+<h5>Deploying a Rails application</h5>
+
+<pre class="code ruby"><code>artifact_deploy &quot;pvpnet&quot; do
+  version &quot;1.0.0&quot;
+  artifact_location &quot;https://artifacts.riotgames.com/pvpnet-1.0.0.tar.gz&quot;
+  deploy_to &quot;/srv/pvpnet&quot;
+  owner &quot;riot&quot;
+  group &quot;riot&quot;
+  environment { 'RAILS_ENV' =&gt; 'production' }
+  shared_directories %w{ data log pids system vendor_bundle assets }
+
+  before_deploy Proc.new {
+    bluepill_service 'pvpnet-unicorn' do
+      action :stop
+    end
+  }
+
+  before_migrate Proc.new {
+    template &quot;#{shared_path}/database.yml&quot; do
+      source &quot;database.yml.erb&quot;
+      owner node[:merlin][:owner]
+      group node[:merlin][:group]
+      mode &quot;0644&quot;
+      variables(
+        :environment =&gt; environment,
+        :options =&gt; database_options
+      )
+    end
+
+    execute &quot;bundle install --local --path=vendor/bundle --without test development cucumber --binstubs&quot; do
+      environment { 'RAILS_ENV' =&gt; 'production' }
+      user &quot;riot&quot;
+      group &quot;riot&quot;
+    end
+  }
+
+  migrate Proc.new {
+    execute &quot;bundle exec rake db:migrate&quot; do
+      cwd release_path
+      environment { 'RAILS_ENV' =&gt; 'production' }
+      user &quot;riot&quot;
+      group &quot;riot&quot;
+    end
+  }
+
+  after_migrate Proc.new {
+    ruby_block &quot;remove_run_migrations&quot; do
+      block do
+        Chef::Log.info(&quot;Migrations were run, removing role[pvpnet_run_migrations]&quot;)
+        node.run_list.remove(&quot;role[pvpnet_run_migrations]&quot;)
+      end
+    end
+  }
+
+  configure Proc.new {
+    template &quot;/srv/pvpnet/current/config.properties&quot; do
+      source &quot;config.properties.erb&quot;
+      owner 'riot'
+      group 'riot'
+      variables(:database_config =&gt; node[:pvpnet_cookbook][:database_config])
+    end
+  }
+
+  restart_proc Proc.new {
+    bluepill_service 'pvpnet-unicorn' do 
+      action :restart
+    end
+  }
+
+  keep 2
+  should_migrate (node[:pvpnet][:should_migrate] ? true : false)
+  force (node[:pvpnet][:force_deploy] ? true : false)
+  action :deploy
+end
+</code></pre>
+
+<h1>Testing</h1>
+
+<p>A sample cookbook is available in <code>fixtures</code>. You can package it with mkartifact.sh, and
+upload it to Nexus as artifact_cookbook:test:1.2.3:tgz.</p>
+
+<p>Set the artifact_test_location and artifact_test_version environment variables when running
+vagrant to change how they&#39;ll be provisioned. Default is 1.2.3 from a file URL.</p>
+
+<ul>
+<li>artifact_test_location=artifact_cookbook:test:1.2.3:tgz artifact_test_version=1.2.3 bundle exec vagrant</li>
+</ul>
+
+<h1>Releasing</h1>
+
+<ol>
+<li><p>Install the prerequisite gems</p>
+
+<pre class="code ruby"><code>$ gem install chef
+$ gem install thor
+</code></pre></li>
+<li><p>Increment the version number in the metadata.rb file</p></li>
+<li><p>Run the Thor release task to create a tag and push to the community site</p>
+
+<pre class="code ruby"><code>$ thor release
+</code></pre></li>
+</ol>
+
+<h1>License and Author</h1>
+
+<p>Author:: Jamie Winsor (<a href="mailto:jamie@vialstudios.com">jamie@vialstudios.com</a>)<br/>
+Author:: Kyle Allan (<a href="mailto:kallan@riotgames.com">kallan@riotgames.com</a>)</p>
+
+<p>Copyright 2013, Riot Games</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre class="code ruby"><code><span class='id identifier rubyid_http'>http</span><span class='symbol'>:/</span><span class='op'>/</span><span class='id identifier rubyid_www'>www</span><span class='period'>.</span><span class='id identifier rubyid_apache'>apache</span><span class='period'>.</span><span class='id identifier rubyid_org'>org</span><span class='op'>/</span><span class='id identifier rubyid_licenses'>licenses</span><span class='op'>/</span><span class='const'>LICENSE</span><span class='op'>-</span><span class='float'>2.0</span>
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+</div></div>
+
+    <div id="footer">
+  Generated on Thu Jan 17 13:31:05 2013 by
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.8.3 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>
