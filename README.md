@@ -95,6 +95,11 @@ artifact_deploy "artifact_test" do
 end
 ```
 
+### Documentation
+
+The RDocs for the deploy.rb provider can be found under the [Top Level Namespace](http://riotgames.github.com/artifact-cookbook/doc/top-level-namespace.html) page
+for this repository.
+
 ### Nexus Usage
 
 In order to deploy an artifact from a Nexus repository, you must first create
