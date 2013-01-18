@@ -27,7 +27,6 @@ require 'yaml'
 attr_reader :release_path
 attr_reader :current_path
 attr_reader :shared_path
-attr_reader :current_release_path
 attr_reader :artifact_root
 attr_reader :version_container_path
 attr_reader :manifest_file
@@ -57,7 +56,7 @@ def load_current_resource
     end
 
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
-    @artifact_version = Chef::Artifact.get_actual_version(node, group_id, artifact_id, @new_resource.version, extension)
+    @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'))
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   else
     @artifact_version = @new_resource.version
@@ -69,7 +68,6 @@ def load_current_resource
   @shared_path              = @new_resource.shared_path
   @artifact_root            = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
   @version_container_path   = ::File.join(@artifact_root, artifact_version)
-  @current_release_path     = get_current_release_path
   @previous_version_paths   = get_previous_version_paths
   @previous_version_numbers = get_previous_version_numbers
   @manifest_file            = ::File.join(@release_path, "manifest.yaml")
@@ -348,18 +346,9 @@ private
     @deploy
   end
 
-  # @return [String] the file the current symlink points to
-  def get_current_release_path
-    if ::File.exists?(current_path)
-      ::File.readlink(current_path)
-    end
-  end
-
   # @return [String] the current version the current symlink points to
   def get_current_release_version
-    if ::File.exists?(current_path)
-      ::File.basename(get_current_release_path)
-    end
+    Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
   end
 
   # Returns a path to the artifact being installed by
