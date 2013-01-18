@@ -403,18 +403,21 @@ private
   # 
   # @return [void]
   def symlink_it_up!
-    new_resource.symlinks.each do |key, value|
-      directory "#{new_resource.shared_path}/#{key}" do
-        owner new_resource.owner
-        group new_resource.group
-        mode '0755'
-        recursive true
-      end
+    recipe_eval do
+      new_resource.symlinks.each do |key, value|
+        Chef::Log.info "artifact_deploy[symlink_it_up!] Creating and linking #{new_resource.shared_path}/#{key} to #{release_path}/#{value}"
+        directory "#{new_resource.shared_path}/#{key}" do
+          owner new_resource.owner
+          group new_resource.group
+          mode '0755'
+          recursive true
+        end
 
-      link "#{release_path}/#{value}" do
-        to "#{new_resource.shared_path}/#{key}"
-        owner new_resource.owner
-        group new_resource.group
+        link "#{release_path}/#{value}" do
+          to "#{new_resource.shared_path}/#{key}"
+          owner new_resource.owner
+          group new_resource.group
+        end
       end
     end
   end
@@ -426,6 +429,7 @@ private
   def setup_deploy_directories!
     recipe_eval do
       [ version_container_path, release_path, shared_path ].each do |path|
+        Chef::Log.info "artifact_deploy[setup_deploy_directories!] Creating #{path}"
         directory path do
           owner new_resource.owner
           group new_resource.group
@@ -443,6 +447,7 @@ private
   def setup_shared_directories!
     recipe_eval do
       new_resource.shared_directories.each do |dir|
+        Chef::Log.info "artifact_deploy[setup_shared_directories!] Creating #{shared_path}/#{dir}"
         directory "#{shared_path}/#{dir}" do
           owner new_resource.owner
           group new_resource.group
@@ -460,13 +465,16 @@ private
   def retrieve_artifact!
     recipe_eval do
       if from_http?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
         retrieve_from_http
       elsif from_nexus?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
         retrieve_from_nexus
       elsif ::File.exist?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
         retrieve_from_local
       else
-        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
+        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
       end
     end
   end
