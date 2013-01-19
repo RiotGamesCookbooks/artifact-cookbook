@@ -34,22 +34,21 @@ class Chef
       # actual version number is when 'latest' is given.
       # 
       # @param  node [Chef::Node] the node
-      # @param  group_id [String] the group_id of the artifact
-      # @param  artifact_id [String] the artifact_id of the artifact
-      # @param  version [String] the version of the artifact
-      # @param  extension [String] the extension of the artifact
+      # @param  artifact_location [String] a colon-separated Maven identifier string that represents the artifact
+      # @param  ssl_verify [Boolean] a boolean to pass through the the NexusCli::RemoteFactory#create method. This
+      #   is a TERRIBLE IDEA and you should never want to set this to false!
       # 
       # @example
-      #   Chef::Artifact.get_actual_version(node, "com.myartifact", "my-artifact", "latest", "tgz") => "2.0.5"
-      #   Chef::Artifact.get_actual_version(node, "com.myartifact", "my-artifact", "1.0.1", "tgz")  => "1.0.1"
+      #   Chef::Artifact.get_actual_version(node, "com.myartifact:my-artifact:latest:tgz") => "2.0.5"
+      #   Chef::Artifact.get_actual_version(node, "com.myartifact:my-artifact:1.0.1:tgz")  => "1.0.1"
       # 
       # @return [String] the version number that latest resolves to or the passed in value
-      def get_actual_version(node, group_id, artifact_id, version, extension)
+      def get_actual_version(node, artifact_location, ssl_verify=true)
+        version = artifact_location.split(':')[2]
         if version.casecmp("latest") == 0
           require 'nexus_cli'
           config = nexus_config_for(node)
-          remote = NexusCli::RemoteFactory.create(config)
-          artifact_location = [group_id, artifact_id, version, extension].join(':')
+          remote = NexusCli::RemoteFactory.create(config, ssl_verify)
           Nokogiri::XML(remote.get_artifact_info(artifact_location)).xpath("//version").first.content()
         else
           version

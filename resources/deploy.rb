@@ -50,6 +50,7 @@ attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc
 attribute :restart, :kind_of            => Proc
 attribute :after_deploy, :kind_of       => Proc
+attribute :ssl_verify, :kind_of         => [ TrueClass, FalseClass ], :default => true
 
 def initialize(*args)
   super
