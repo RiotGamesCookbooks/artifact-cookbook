@@ -27,7 +27,6 @@ require 'yaml'
 attr_reader :release_path
 attr_reader :current_path
 attr_reader :shared_path
-attr_reader :current_release_path
 attr_reader :artifact_root
 attr_reader :version_container_path
 attr_reader :manifest_file
@@ -57,7 +56,7 @@ def load_current_resource
     end
 
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
-    @artifact_version = Chef::Artifact.get_actual_version(node, group_id, artifact_id, @new_resource.version, extension)
+    @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'), @new_resource.ssl_verify)
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   else
     @artifact_version = @new_resource.version
@@ -69,7 +68,6 @@ def load_current_resource
   @shared_path              = @new_resource.shared_path
   @artifact_root            = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
   @version_container_path   = ::File.join(@artifact_root, artifact_version)
-  @current_release_path     = get_current_release_path
   @previous_version_paths   = get_previous_version_paths
   @previous_version_numbers = get_previous_version_numbers
   @manifest_file            = ::File.join(@release_path, "manifest.yaml")
@@ -348,18 +346,9 @@ private
     @deploy
   end
 
-  # @return [String] the file the current symlink points to
-  def get_current_release_path
-    if ::File.exists?(current_path)
-      ::File.readlink(current_path)
-    end
-  end
-
   # @return [String] the current version the current symlink points to
   def get_current_release_version
-    if ::File.exists?(current_path)
-      ::File.basename(get_current_release_path)
-    end
+    Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
   end
 
   # Returns a path to the artifact being installed by
@@ -403,18 +392,21 @@ private
   # 
   # @return [void]
   def symlink_it_up!
-    new_resource.symlinks.each do |key, value|
-      directory "#{new_resource.shared_path}/#{key}" do
-        owner new_resource.owner
-        group new_resource.group
-        mode '0755'
-        recursive true
-      end
+    recipe_eval do
+      new_resource.symlinks.each do |key, value|
+        Chef::Log.info "artifact_deploy[symlink_it_up!] Creating and linking #{new_resource.shared_path}/#{key} to #{release_path}/#{value}"
+        directory "#{new_resource.shared_path}/#{key}" do
+          owner new_resource.owner
+          group new_resource.group
+          mode '0755'
+          recursive true
+        end
 
-      link "#{release_path}/#{value}" do
-        to "#{new_resource.shared_path}/#{key}"
-        owner new_resource.owner
-        group new_resource.group
+        link "#{release_path}/#{value}" do
+          to "#{new_resource.shared_path}/#{key}"
+          owner new_resource.owner
+          group new_resource.group
+        end
       end
     end
   end
@@ -426,6 +418,7 @@ private
   def setup_deploy_directories!
     recipe_eval do
       [ version_container_path, release_path, shared_path ].each do |path|
+        Chef::Log.info "artifact_deploy[setup_deploy_directories!] Creating #{path}"
         directory path do
           owner new_resource.owner
           group new_resource.group
@@ -443,6 +436,7 @@ private
   def setup_shared_directories!
     recipe_eval do
       new_resource.shared_directories.each do |dir|
+        Chef::Log.info "artifact_deploy[setup_shared_directories!] Creating #{shared_path}/#{dir}"
         directory "#{shared_path}/#{dir}" do
           owner new_resource.owner
           group new_resource.group
@@ -460,13 +454,16 @@ private
   def retrieve_artifact!
     recipe_eval do
       if from_http?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
         retrieve_from_http
       elsif from_nexus?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
         retrieve_from_nexus
       elsif ::File.exist?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
         retrieve_from_local
       else
-        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{new_resource.artifact_location}! Please make sure the artifact exists in the specified location."
+        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
       end
     end
   end
@@ -524,7 +521,7 @@ private
         require 'nexus_cli'
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
-          remote = NexusCli::RemoteFactory.create(config, false)
+          remote = NexusCli::RemoteFactory.create(config, new_resource.ssl_verify)
           remote.pull_artifact(artifact_location, version_container_path)
         end
       end
