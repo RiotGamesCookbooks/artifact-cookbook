@@ -56,7 +56,7 @@ def load_current_resource
     end
 
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
-    @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'))
+    @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'), @new_resource.ssl_verify)
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   else
     @artifact_version = @new_resource.version
@@ -521,7 +521,7 @@ private
         require 'nexus_cli'
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
-          remote = NexusCli::RemoteFactory.create(config, false)
+          remote = NexusCli::RemoteFactory.create(config, new_resource.ssl_verify)
           remote.pull_artifact(artifact_location, version_container_path)
         end
       end

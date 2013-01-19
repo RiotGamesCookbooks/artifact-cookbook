@@ -50,6 +50,12 @@ attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc
 attribute :restart, :kind_of            => Proc
 attribute :after_deploy, :kind_of       => Proc
+attribute :ssl_verify, :kind_of         => [ TrueClass, FalseClass ], :default => true
+
+def initialize(*args)
+  super
+  @action = :deploy
+end
 
 def artifact_deploy_path
   "#{Chef::Config[:file_cache_path]}/artifact_deploys"
