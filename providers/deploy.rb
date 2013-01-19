@@ -27,8 +27,8 @@ require 'yaml'
 attr_reader :release_path
 attr_reader :current_path
 attr_reader :shared_path
-attr_reader :artifact_root
-attr_reader :version_container_path
+attr_reader :artifact_cache
+attr_reader :artifact_cache_version_path
 attr_reader :manifest_file
 attr_reader :previous_version_paths
 attr_reader :previous_version_numbers
@@ -63,16 +63,16 @@ def load_current_resource
     @artifact_location = @new_resource.artifact_location
   end
 
-  @release_path             = get_release_path
-  @current_path             = @new_resource.current_path
-  @shared_path              = @new_resource.shared_path
-  @artifact_root            = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
-  @version_container_path   = ::File.join(@artifact_root, artifact_version)
-  @previous_version_paths   = get_previous_version_paths
-  @previous_version_numbers = get_previous_version_numbers
-  @manifest_file            = ::File.join(@release_path, "manifest.yaml")
-  @deploy                   = false
-  @current_resource         = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
+  @release_path                = get_release_path
+  @current_path                = @new_resource.current_path
+  @shared_path                 = @new_resource.shared_path
+  @artifact_cache              = ::File.join(@new_resource.artifact_deploys_cache_path, @new_resource.name)
+  @artifact_cache_version_path = ::File.join(artifact_cache, artifact_version)
+  @previous_version_paths      = get_previous_version_paths
+  @previous_version_numbers    = get_previous_version_numbers
+  @manifest_file               = ::File.join(@release_path, "manifest.yaml")
+  @deploy                      = false
+  @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
@@ -182,7 +182,7 @@ end
 # 
 # @return [String] the path to the cached artifact
 def cached_tar_path
-  ::File.join(version_container_path, artifact_filename)
+  ::File.join(artifact_cache_version_path, artifact_filename)
 end
 
 # Returns the filename of the artifact being installed when the LWRP
@@ -417,7 +417,7 @@ private
   # @return [void]
   def setup_deploy_directories!
     recipe_eval do
-      [ version_container_path, release_path, shared_path ].each do |path|
+      [ artifact_cache_version_path, release_path, shared_path ].each do |path|
         Chef::Log.info "artifact_deploy[setup_deploy_directories!] Creating #{path}"
         directory path do
           owner new_resource.owner
@@ -522,7 +522,7 @@ private
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
           remote = NexusCli::RemoteFactory.create(config, new_resource.ssl_verify)
-          remote.pull_artifact(artifact_location, version_container_path)
+          remote.pull_artifact(artifact_location, artifact_cache_version_path)
         end
       end
     end
