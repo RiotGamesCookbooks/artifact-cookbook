@@ -83,7 +83,6 @@ def load_current_resource
 end
 
 action :deploy do
-  delete_previous_versions(:keep => new_resource.keep)
   setup_deploy_directories!
   setup_shared_directories!
 
@@ -130,6 +129,7 @@ action :deploy do
   end
 
   recipe_eval { write_manifest }
+  delete_previous_versions!(:keep => new_resource.keep)
 
   new_resource.updated_by_last_action(true)
 end
@@ -215,6 +215,48 @@ def artifact_filename
   end
 end
 
+# Deletes released versions of the artifact when the number of 
+# released versions exceeds the :keep value.
+#
+# @param [Hash] options
+#
+# @option options [Integer] :keep
+#   the number of releases to keep
+# 
+# @return [type] [description]
+def delete_previous_versions!(options = {})
+  recipe_eval do
+    versions_to_delete = []
+
+    keep = options[:keep] || 0
+    delete_first = total = get_previous_version_paths.length
+
+    if total == 0 || total <= keep
+      true
+    else
+      delete_first -= keep
+      Chef::Log.info "artifact_deploy[delete_previous_versions!] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
+      versions_to_delete = get_previous_version_paths.shift(delete_first)
+    end
+
+    versions_to_delete.each do |version|
+      log "artifact_deploy[delete_previous_versions!] #{version.basename} deleted" do
+        level :info
+      end
+
+      directory ::File.join(artifact_cache, version.basename) do
+        recursive true
+        action    :delete
+      end
+
+      directory ::File.join(new_resource.deploy_to, 'releases', version.basename) do
+        recursive true
+        action    :delete
+      end
+    end
+  end
+end
+
 private
 
   # A wrapper that adds debug logging for running a recipe_eval on the 
@@ -233,50 +275,6 @@ private
       Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Ending execution of #{proc_name} proc."
     else
       Chef::Log.info "artifact_deploy[run_proc::#{proc_name}] Skipping execution of #{proc_name} proc because it was not defined."
-    end
-  end
-
-  # Deletes released versions of the artifact when the number of 
-  # released versions exceeds the :keep value.
-  #
-  # @param [Hash] options
-  #
-  # @option options [Integer] :keep
-  #   the number of releases to keep
-  # 
-  # @return [type] [description]
-  def delete_previous_versions(options = {})
-    recipe_eval do
-      ruby_block "delete_previous_versions" do
-        block do
-          def delete_cached_files_for(version)
-            FileUtils.rm_rf ::File.join(artifact_root, version)
-          end
-
-          def delete_release_path_for(version)
-            FileUtils.rm_rf ::File.join(new_resource.deploy_to, 'releases', version)
-          end
-
-          keep = options[:keep] || 0
-          delete_first = total = previous_version_paths.length
-
-          if total == 0 || total <= keep
-            true
-          else
-            delete_first -= keep
-
-            Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
-
-            to_delete = previous_version_paths.shift(delete_first)
-
-            to_delete.each do |version|
-              delete_cached_files_for(version.basename)
-              delete_release_path_for(version.basename)
-              Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
-            end
-          end
-        end
-      end
     end
   end
 
