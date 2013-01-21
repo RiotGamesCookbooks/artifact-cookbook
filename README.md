@@ -47,6 +47,7 @@ migrate             | A proc containing resources to be executed during the migr
 after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
 restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
 after_deploy        | A proc containing resources to be executed after the deploy process ends             | Proc    |
+ssl_verify          | Used to set whether or not communications with a Nexus server should be SSL verified | Boolean | true
 
 ### Deploy Flow, the Manifest, and Procs
 

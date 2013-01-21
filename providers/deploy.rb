@@ -40,6 +40,11 @@ def load_current_resource
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
   end
 
+  if @new_resource.name =~ /\W/
+    Chef::Log.warn "Whitespace detected in resource name. Failing Chef run."
+    Chef::Application.fatal! "The name attribute for this resource is significant, and there cannot be whitespace. The preferred usage is to use the name of the artifact."
+  end
+
   chef_gem "activesupport" do
     version "3.2.11"
   end
