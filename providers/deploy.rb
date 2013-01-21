@@ -27,8 +27,8 @@ require 'yaml'
 attr_reader :release_path
 attr_reader :current_path
 attr_reader :shared_path
-attr_reader :artifact_root
-attr_reader :version_container_path
+attr_reader :artifact_cache
+attr_reader :artifact_cache_version_path
 attr_reader :manifest_file
 attr_reader :previous_version_paths
 attr_reader :previous_version_numbers
@@ -38,6 +38,11 @@ attr_reader :artifact_version
 def load_current_resource
   if latest?(@new_resource.version) && from_http?(@new_resource.artifact_location)
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
+  end
+
+  if @new_resource.name =~ /\W/
+    Chef::Log.warn "Whitespace detected in resource name. Failing Chef run."
+    Chef::Application.fatal! "The name attribute for this resource is significant, and there cannot be whitespace. The preferred usage is to use the name of the artifact."
   end
 
   chef_gem "activesupport" do
@@ -63,22 +68,21 @@ def load_current_resource
     @artifact_location = @new_resource.artifact_location
   end
 
-  @release_path             = get_release_path
-  @current_path             = @new_resource.current_path
-  @shared_path              = @new_resource.shared_path
-  @artifact_root            = ::File.join(@new_resource.artifact_deploy_path, @new_resource.name)
-  @version_container_path   = ::File.join(@artifact_root, artifact_version)
-  @previous_version_paths   = get_previous_version_paths
-  @previous_version_numbers = get_previous_version_numbers
-  @manifest_file            = ::File.join(@release_path, "manifest.yaml")
-  @deploy                   = false
-  @current_resource         = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
+  @release_path                = get_release_path
+  @current_path                = @new_resource.current_path
+  @shared_path                 = @new_resource.shared_path
+  @artifact_cache              = ::File.join(@new_resource.artifact_deploys_cache_path, @new_resource.name)
+  @artifact_cache_version_path = ::File.join(artifact_cache, artifact_version)
+  @previous_version_paths      = get_previous_version_paths
+  @previous_version_numbers    = get_previous_version_numbers
+  @manifest_file               = ::File.join(@release_path, "manifest.yaml")
+  @deploy                      = false
+  @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
 
 action :deploy do
-  delete_previous_versions(:keep => new_resource.keep)
   setup_deploy_directories!
   setup_shared_directories!
 
@@ -91,7 +95,7 @@ action :deploy do
   if deploy?
     run_proc :before_extract
     if new_resource.is_tarball
-      extract_artifact
+      extract_artifact!
     else
       copy_artifact
     end
@@ -125,6 +129,7 @@ action :deploy do
   end
 
   recipe_eval { write_manifest }
+  delete_previous_versions!
 
   new_resource.updated_by_last_action(true)
 end
@@ -139,24 +144,24 @@ end
 # and a few 'zip' based files (zip, war, jar).
 # 
 # @return [void]
-def extract_artifact
+def extract_artifact!
   recipe_eval do
     case ::File.extname(cached_tar_path)
     when /tar.gz|tgz|tar|tar.bz2|tbz/
-      execute "extract_artifact" do
+      execute "extract_artifact!" do
         command "tar xf #{cached_tar_path} -C #{release_path}"
         user new_resource.owner
         group new_resource.group
       end
     when /zip|war|jar/
       package "unzip"
-      execute "extract_artifact" do
+      execute "extract_artifact!" do
         command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
         user new_resource.owner
         group new_resource.group
       end
     else
-      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are"
+      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
     end
   end
 end
@@ -182,7 +187,7 @@ end
 # 
 # @return [String] the path to the cached artifact
 def cached_tar_path
-  ::File.join(version_container_path, artifact_filename)
+  ::File.join(artifact_cache_version_path, artifact_filename)
 end
 
 # Returns the filename of the artifact being installed when the LWRP
@@ -210,6 +215,43 @@ def artifact_filename
   end
 end
 
+# Deletes released versions of the artifact when the number of 
+# released versions exceeds the :keep value.
+# 
+# @return [type] [description]
+def delete_previous_versions!
+  recipe_eval do
+    versions_to_delete = []
+
+    keep = new_resource.keep
+    delete_first = total = get_previous_version_paths.length
+
+    if total == 0 || total <= keep
+      true
+    else
+      delete_first -= keep
+      Chef::Log.info "artifact_deploy[delete_previous_versions!] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
+      versions_to_delete = get_previous_version_paths.shift(delete_first)
+    end
+
+    versions_to_delete.each do |version|
+      log "artifact_deploy[delete_previous_versions!] #{version.basename} deleted" do
+        level :info
+      end
+
+      directory ::File.join(artifact_cache, version.basename) do
+        recursive true
+        action    :delete
+      end
+
+      directory ::File.join(new_resource.deploy_to, 'releases', version.basename) do
+        recursive true
+        action    :delete
+      end
+    end
+  end
+end
+
 private
 
   # A wrapper that adds debug logging for running a recipe_eval on the 
@@ -228,50 +270,6 @@ private
       Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Ending execution of #{proc_name} proc."
     else
       Chef::Log.info "artifact_deploy[run_proc::#{proc_name}] Skipping execution of #{proc_name} proc because it was not defined."
-    end
-  end
-
-  # Deletes released versions of the artifact when the number of 
-  # released versions exceeds the :keep value.
-  #
-  # @param [Hash] options
-  #
-  # @option options [Integer] :keep
-  #   the number of releases to keep
-  # 
-  # @return [type] [description]
-  def delete_previous_versions(options = {})
-    recipe_eval do
-      ruby_block "delete_previous_versions" do
-        block do
-          def delete_cached_files_for(version)
-            FileUtils.rm_rf ::File.join(artifact_root, version)
-          end
-
-          def delete_release_path_for(version)
-            FileUtils.rm_rf ::File.join(new_resource.deploy_to, 'releases', version)
-          end
-
-          keep = options[:keep] || 0
-          delete_first = total = previous_version_paths.length
-
-          if total == 0 || total <= keep
-            true
-          else
-            delete_first -= keep
-
-            Chef::Log.info "artifact_deploy[delete_previous_versions] is deleting #{delete_first} of #{total} old versions (keeping: #{keep})"
-
-            to_delete = previous_version_paths.shift(delete_first)
-
-            to_delete.each do |version|
-              delete_cached_files_for(version.basename)
-              delete_release_path_for(version.basename)
-              Chef::Log.info "artifact_deploy[delete_previous_versions] #{version.basename} deleted"
-            end
-          end
-        end
-      end
     end
   end
 
@@ -417,7 +415,7 @@ private
   # @return [void]
   def setup_deploy_directories!
     recipe_eval do
-      [ version_container_path, release_path, shared_path ].each do |path|
+      [ artifact_cache_version_path, release_path, shared_path ].each do |path|
         Chef::Log.info "artifact_deploy[setup_deploy_directories!] Creating #{path}"
         directory path do
           owner new_resource.owner
@@ -452,18 +450,20 @@ private
   # 
   # @return [void]
   def retrieve_artifact!
-    recipe_eval do
-      if from_http?(new_resource.artifact_location)
-        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
-        retrieve_from_http
-      elsif from_nexus?(new_resource.artifact_location)
-        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
-        retrieve_from_nexus
-      elsif ::File.exist?(new_resource.artifact_location)
-        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
-        retrieve_from_local
-      else
-        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
+    if not ::File.exists?(cached_tar_path)
+      recipe_eval do
+        if from_http?(new_resource.artifact_location)
+          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
+          retrieve_from_http
+        elsif from_nexus?(new_resource.artifact_location)
+          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
+          retrieve_from_nexus
+        elsif ::File.exist?(new_resource.artifact_location)
+          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
+          retrieve_from_local
+        else
+          Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
+        end
       end
     end
   end
@@ -522,7 +522,7 @@ private
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
           config = Chef::Artifact.nexus_config_for(node)
           remote = NexusCli::RemoteFactory.create(config, new_resource.ssl_verify)
-          remote.pull_artifact(artifact_location, version_container_path)
+          remote.pull_artifact(artifact_location, artifact_cache_version_path)
         end
       end
     end
