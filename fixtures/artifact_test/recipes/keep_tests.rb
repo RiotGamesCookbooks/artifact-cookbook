@@ -66,3 +66,12 @@ artifact_deploy "artifact_test" do
 
   action :deploy
 end
+
+ruby_block "ensure that version 1.0.0 was deleted" do
+  block do
+    deleted_release_path = "/srv/artifact_test/releases/1.0.0"
+    deleted_cache_path = "#{Chef::Config[:file_cache_path]}/artifact_deploys/artifact_test/1.0.0"
+    Chef::Application.fatal! "the artifacts release was not deleted!" if ::File.exists?(deleted_release_path)
+    Chef::Application.fatal! "the artifacts cached file was not deleted!" if ::File.exists?(deleted_cache_path)
+  end
+end
