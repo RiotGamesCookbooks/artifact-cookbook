@@ -91,7 +91,7 @@ action :deploy do
   if deploy?
     run_proc :before_extract
     if new_resource.is_tarball
-      extract_artifact
+      extract_artifact!
     else
       copy_artifact
     end
@@ -139,24 +139,24 @@ end
 # and a few 'zip' based files (zip, war, jar).
 # 
 # @return [void]
-def extract_artifact
+def extract_artifact!
   recipe_eval do
     case ::File.extname(cached_tar_path)
     when /tar.gz|tgz|tar|tar.bz2|tbz/
-      execute "extract_artifact" do
+      execute "extract_artifact!" do
         command "tar xf #{cached_tar_path} -C #{release_path}"
         user new_resource.owner
         group new_resource.group
       end
     when /zip|war|jar/
       package "unzip"
-      execute "extract_artifact" do
+      execute "extract_artifact!" do
         command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
         user new_resource.owner
         group new_resource.group
       end
     else
-      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are"
+      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
     end
   end
 end
