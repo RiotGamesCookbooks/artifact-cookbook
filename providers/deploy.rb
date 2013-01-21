@@ -129,7 +129,7 @@ action :deploy do
   end
 
   recipe_eval { write_manifest }
-  delete_previous_versions!(:keep => new_resource.keep)
+  delete_previous_versions!
 
   new_resource.updated_by_last_action(true)
 end
@@ -217,18 +217,13 @@ end
 
 # Deletes released versions of the artifact when the number of 
 # released versions exceeds the :keep value.
-#
-# @param [Hash] options
-#
-# @option options [Integer] :keep
-#   the number of releases to keep
 # 
 # @return [type] [description]
-def delete_previous_versions!(options = {})
+def delete_previous_versions!
   recipe_eval do
     versions_to_delete = []
 
-    keep = options[:keep] || 0
+    keep = new_resource.keep
     delete_first = total = get_previous_version_paths.length
 
     if total == 0 || total <= keep
