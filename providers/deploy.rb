@@ -452,18 +452,20 @@ private
   # 
   # @return [void]
   def retrieve_artifact!
-    recipe_eval do
-      if from_http?(new_resource.artifact_location)
-        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
-        retrieve_from_http
-      elsif from_nexus?(new_resource.artifact_location)
-        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
-        retrieve_from_nexus
-      elsif ::File.exist?(new_resource.artifact_location)
-        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
-        retrieve_from_local
-      else
-        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
+    if not ::File.exists?(cached_tar_path)
+      recipe_eval do
+        if from_http?(new_resource.artifact_location)
+          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
+          retrieve_from_http
+        elsif from_nexus?(new_resource.artifact_location)
+          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
+          retrieve_from_nexus
+        elsif ::File.exist?(new_resource.artifact_location)
+          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
+          retrieve_from_local
+        else
+          Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
+        end
       end
     end
   end
