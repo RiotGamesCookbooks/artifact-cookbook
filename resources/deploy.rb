@@ -57,7 +57,7 @@ def initialize(*args)
   @action = :deploy
 end
 
-def artifact_deploy_path
+def artifact_deploys_cache_path
   "#{Chef::Config[:file_cache_path]}/artifact_deploys"
 end
 
