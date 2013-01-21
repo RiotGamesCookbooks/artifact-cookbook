@@ -1,3 +1,16 @@
+## v1.1.0:
+
+Major Improvements
+* New, simpler API for Chef::Artifact.get_actual_version.
+* Added an ssl_verify attribute to the resource to help facilitate communications with Nexus servers that have invalid SSL certs.
+
+Bug Fixes
+* [#45] Add a better check to ensure we don't redownload artifacts we already have.
+* [#42] Deleting previous versions now uses Chef resources and is hopefully a bit more clear.
+* [#35] Throw an error if the resource's name attribute has whitespace.
+* Symlinks are now created in the symlink_it_up! method using recipe_eval. This helps ensure a clearer picture of the flow during the Chef run.
+* Better logging throughout.
+
 ## v1.0.0:
 
 Major Improvements
