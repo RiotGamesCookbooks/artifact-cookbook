@@ -147,7 +147,7 @@ end
 def extract_artifact!
   recipe_eval do
     case ::File.extname(cached_tar_path)
-    when /tar.gz|tgz|tar|tar.bz2|tbz/
+    when /gz|tgz|tar|bz2|tbz/
       execute "extract_artifact!" do
         command "tar xf #{cached_tar_path} -C #{release_path}"
         user new_resource.owner

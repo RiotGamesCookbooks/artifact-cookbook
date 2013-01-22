@@ -1,3 +1,13 @@
+## v1.1.2
+
+Bug Fixes
+* case statement for extract_artifact! was not matching '.tar.gz' files correctly.
+
+## v1.1.1
+
+Bug Fixes
+* [#47] Regex was matching some special characters like '-'.
+
 ## v1.1.0:
 
 Major Improvements
