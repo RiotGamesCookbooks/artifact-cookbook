@@ -132,7 +132,7 @@ If many environments share the same configuration, you can use "*" as a wildcard
 
     artifact_deploy "pvpnet" do
       version "1.0.0"
-      artifact_location "https://artifacts.riotgames.com/pvpnet-1.0.0.tar.gz"
+      artifact_location "https://artifacts.location.riotgames.com/pvpnet-1.0.0.tar.gz"
       deploy_to "/srv/pvpnet"
       owner "riot"
       group "riot"
@@ -201,6 +201,37 @@ If many environments share the same configuration, you can use "*" as a wildcard
       should_migrate (node[:pvpnet][:should_migrate] ? true : false)
       force (node[:pvpnet][:force_deploy] ? true : false)
       action :deploy
+    end
+
+##### Deploying the latest from Nexus (Changed in > 1.0.0)
+
+    artifact_deploy "my-artifact" do
+      version           "latest"
+      artifact_location "com.foo:my-artifact:tgz"
+      deploy_to         "/opt/my-artifact"
+      owner             "artifact"
+      group             "artifact"
+
+      before_extract Proc.new {
+        service "my-artifact" do
+          action :stop
+        end
+      }
+
+      configure Proc.new {
+        template "#{release_path}/conf/config.properties" do
+          source "config.properties.erb"
+          owner  "artifact"
+          group  "artifact"
+          variables(:config => node[:my_artifact_cookbook][:config])
+        end
+      }
+
+      restart_proc Proc.new {
+        service "my-artifact" do
+          action :start
+        end
+      }
     end
 
 # Testing
