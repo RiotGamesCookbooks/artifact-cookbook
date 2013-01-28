@@ -45,7 +45,7 @@ configure           | A proc containing resources to be executed to configure th
 before_migrate      | A proc containing resources to be executed before the migration Proc                 | Proc    |
 migrate             | A proc containing resources to be executed during the migration stage                | Proc    |
 after_migrate       | A proc containing resources to be executed after the migration Proc                  | Proc    |
-restart_proc        | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
+restart             | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
 after_deploy        | A proc containing resources to be executed after the deploy process ends             | Proc    |
 ssl_verify          | Used to set whether or not communications with a Nexus server should be SSL verified | Boolean | true
 
@@ -191,7 +191,7 @@ If many environments share the same configuration, you can use "*" as a wildcard
         end
       }
 
-      restart_proc Proc.new {
+      restart Proc.new {
         bluepill_service 'pvpnet-unicorn' do 
           action :restart
         end
@@ -227,7 +227,7 @@ If many environments share the same configuration, you can use "*" as a wildcard
         end
       }
 
-      restart_proc Proc.new {
+      restart Proc.new {
         service "my-artifact" do
           action :start
         end
