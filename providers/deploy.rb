@@ -50,7 +50,7 @@ def load_current_resource
   end
 
   if from_nexus?(@new_resource.artifact_location)
-    %W{libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
+    %W{libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
       package nokogiri_requirement do
         action :install
       end.run_action(:install)
@@ -118,8 +118,6 @@ action :deploy do
     run_proc :restart
   end
 
-  run_proc :after_deploy
-
   recipe_eval do
     link new_resource.current_path do
       to release_path
@@ -127,6 +125,8 @@ action :deploy do
       group new_resource.group
     end
   end
+
+  run_proc :after_deploy
 
   recipe_eval { write_manifest }
   delete_previous_versions!
