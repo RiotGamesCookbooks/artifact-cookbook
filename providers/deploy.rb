@@ -551,7 +551,7 @@ private
     files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ }
 
     {}.tap do |map|
-      files_in_release_path.each { |file| map[file] = Digest::SHA1.hexdigest(file) }
+      files_in_release_path.each { |file| map[file] = Digest::SHA1.file(file).hexdigest }
     end
   end
 
