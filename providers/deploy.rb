@@ -548,7 +548,7 @@ private
   # @return [Hash] a mapping of file_path => SHA1 of that file
   def generate_manifest(files_path)
     Chef::Log.info "artifact_deploy[generate_manifest] Generating manifest for files in #{files_path}"
-    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ }
+    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ || ::File.symlink?(file) }
 
     {}.tap do |map|
       files_in_release_path.each { |file| map[file] = Digest::SHA1.file(file).hexdigest }
