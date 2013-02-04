@@ -1,3 +1,9 @@
+## v1.2.0
+
+Bug Fixes
+* [#50] Now actually SHA1 hashing the files themselves as opposed to hashing the String of the path to the file.
+* [#52] Manifest generation now ignores symlinked files and directories.
+
 ## v1.1.2
 
 Bug Fixes

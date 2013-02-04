@@ -234,6 +234,25 @@ If many environments share the same configuration, you can use "*" as a wildcard
       }
     end
 
+##### Configuring an artifact_deploy that may need to change over many Chef runs
+
+    artifact_deploy "my-artifact" do
+      version           "1.0.0"
+      artifact_location "http://www.fooo.com/my-artifact-1.0.0.tgz"
+      deploy_to         "/srv/my-artifact"
+      owner             node[:artifact_owner]
+      group             node[:artifact_group]
+      symlinks({
+        "log" => "log"
+      })
+      force             node[:force_deploy]
+    end
+
+  Configuring your resource in this manner will allow you to ensure it can always change when you need it to. In other words,
+  configuring the `force` attribute to a node attribute, will allow you to change some of the more finer grained aspects of the
+  resource. For example, when force is true, you can also change the value of owner and group to remap the deployed artifact to
+  a new permissions scheme.
+
 # Testing
 
 A sample cookbook is available in `fixtures`. You can package it with mkartifact.sh, and
