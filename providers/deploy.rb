@@ -50,14 +50,8 @@ def load_current_resource
   end
 
   if from_nexus?(@new_resource.artifact_location)
-    %W{libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
-      package nokogiri_requirement do
-        action :install
-      end.run_action(:install)
-    end
-
     chef_gem "nexus_cli" do
-      version "2.0.2"
+      version "3.0.0"
     end
 
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
