@@ -47,9 +47,10 @@ class Chef
         version = artifact_location.split(':')[2]
         if version.casecmp("latest") == 0
           require 'nexus_cli'
+          require 'rexml/document'
           config = nexus_config_for(node)
           remote = NexusCli::RemoteFactory.create(config, ssl_verify)
-          Nokogiri::XML(remote.get_artifact_info(artifact_location)).xpath("//version").first.content()
+          REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//version"].text
         else
           version
         end

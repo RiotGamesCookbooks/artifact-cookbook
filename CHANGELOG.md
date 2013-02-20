@@ -1,3 +1,7 @@
+## v1.3.1
+
+* Fix a bug where Nokogiri was still used.
+
 ## v1.3.0
 
 * Use a newer nexus_cli gem which removes the requirement of installed libxml and libxslt packages.
