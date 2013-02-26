@@ -512,11 +512,8 @@ private
   def retrieve_from_nexus
     ruby_block "retrieve from nexus" do
       block do
-        require 'nexus_cli'
         unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
-          config = Chef::Artifact.nexus_config_for(node)
-          remote = NexusCli::RemoteFactory.create(config, new_resource.ssl_verify)
-          remote.pull_artifact(artifact_location, artifact_cache_version_path)
+          Chef::Artifact.retrieve_from_nexus(node, artifact_location, artifact_cache_version_path, ssl_verify: new_resource.ssl_verify)
         end
       end
     end
