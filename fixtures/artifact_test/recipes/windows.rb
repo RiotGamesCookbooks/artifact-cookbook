@@ -1,15 +1,11 @@
 #
 # Cookbook Name:: artifact_test
-# Recipe:: default
+# Recipe:: windows
 #
-# Copyright 2012, Riot Games
+# Copyright 2013, Riot Games
 #
 # All rights reserved - Do Not Redistribute
 #
-
-group "artifact"
-user "artifacts"
-
 artifact_deploy "artifact_test" do
   version node[:artifact_test][:version]
   artifact_location node[:artifact_test][:location]
