@@ -68,17 +68,28 @@ class Chef
       # points to.
       # 
       # @param  deploy_to_dir [String] the directory where an artifact is installed
+      # @param  platform [String] an optional parameter indicating the OS of the system
       # 
       # @example
       #   Chef::Artifact.get_current_deployed_version("/opt/my_deploy_dir") => "2.0.65"
       # 
       # @return [String] the currently deployed version of the given artifact
-      def get_current_deployed_version(deploy_to_dir)
+      def get_current_deployed_version(deploy_to_dir, platform=nil)
         current_dir = ::File.join(deploy_to_dir, "current")
         if ::File.exists?(current_dir)
-          ::File.basename(::File.readlink(current_dir))
+          ::File.basename(readlink(platform, current_dir))
         end
       end
+
+      private
+
+        def readlink(platform, path)
+          if platform && platform.match(/windows/)
+            require 'chef/win32/file'
+            return Chef::ReservedNames::Win32::File.readlink(path)
+          end
+          ::File.readlink(path)
+        end
     end
   end
 end

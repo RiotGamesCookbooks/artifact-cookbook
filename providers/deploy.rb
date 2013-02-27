@@ -340,7 +340,7 @@ private
 
   # @return [String] the current version the current symlink points to
   def get_current_release_version
-    Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
+    Chef::Artifact.get_current_deployed_version(new_resource.deploy_to, node[:platform])
   end
 
   # Returns a path to the artifact being installed by
