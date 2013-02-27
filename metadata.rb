@@ -9,3 +9,4 @@ version          "1.3.1"
   supports os
 end
 
+depends "windows", "~> 1.8.0"

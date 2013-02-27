@@ -148,11 +148,17 @@ def extract_artifact!
         group new_resource.group
       end
     when /zip|war|jar/
-      package "unzip"
-      execute "extract_artifact!" do
-        command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
-        user new_resource.owner
-        group new_resource.group
+      if node[:platform] =~ /windows/
+        windows_zipfile release_path do
+          source cached_tar_path
+        end
+      else
+        package "unzip"
+        execute "extract_artifact!" do
+          command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
+          user    new_resource.owner
+          group   new_resource.group
+        end
       end
     else
       Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
