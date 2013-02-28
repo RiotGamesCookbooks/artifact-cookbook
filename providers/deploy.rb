@@ -571,8 +571,6 @@ private
     ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
   end
 
-  # Convenience method for determining whether or not the node is a Windows node.
-  # 
   # @return [Fixnum or nil]
   def windows?
     node[:platform] =~ /windows/
