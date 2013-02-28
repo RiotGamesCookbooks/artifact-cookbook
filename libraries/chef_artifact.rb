@@ -35,7 +35,7 @@ class Chef
       # 
       # @param  node [Chef::Node] the node
       # @param  artifact_location [String] a colon-separated Maven identifier string that represents the artifact
-      # @param  ssl_verify [Boolean] a boolean to pass through the the NexusCli::RemoteFactory#create method. This
+      # @param  ssl_verify [Boolean] a boolean to pass through to the NexusCli::RemoteFactory#create method. This
       #   is a TERRIBLE IDEA and you should never want to set this to false!
       # 
       # @example
@@ -56,6 +56,18 @@ class Chef
         end
       end
 
+      # Downloads a file to disk from the configured Nexus server.
+      # 
+      # @param  node [Chef::Node] the node
+      # @param  source [String] a colon-separated Maven identified string that represents the artifact
+      # @param  destination_dir [String] a path to download the artifact to
+      #
+      # @option options [Boolean] :ssl_verify
+      #   a boolean to pass through to the NexusCli::RemoteFactory#create method indicated whether
+      #   ssl methods should or should not be verified.
+      # 
+      # @return [Hash] writes a file to disk and returns a Hash with
+      # information about that file. See NexusCli::ArtifactActions#pull_artifact.
       def retrieve_from_nexus(node, source, destination_dir, options = {})
         require 'nexus_cli'
         config = nexus_config_for(node)
