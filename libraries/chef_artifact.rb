@@ -56,6 +56,13 @@ class Chef
         end
       end
 
+      def retrieve_from_nexus(node, source, destination_dir, options = {})
+        require 'nexus_cli'
+        config = nexus_config_for(node)
+        remote = NexusCli::RemoteFactory.create(config, options[:ssl_verify])
+        remote.pull_artifact(source, destination_dir)
+      end
+
       # Returns the currently deployed version of an artifact given that artifacts
       # installation directory by reading what directory the 'current' symlink
       # points to.
