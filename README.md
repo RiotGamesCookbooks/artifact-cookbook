@@ -6,6 +6,15 @@ Provides your cookbooks with the Artifact Deploy LWRP
 
 * Chef 10
 
+# Platforms
+
+* CentOS
+* Fedora
+* Windows >= 6.0
+  * Windows Vista
+  * Windows 2008 R2
+  * Windows 7
+
 # Resources / Providers
 
 ## artifact_deploy

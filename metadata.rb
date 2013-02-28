@@ -5,8 +5,9 @@ license          "Apache 2.0"
 description      "Provides your cookbooks with the Artifact Deploy LWRP"
 version          "1.3.1"
 
-%w{ centos redhat fedora windows }.each do |os|
-  supports os
-end
+supports "centos"
+supports "redhat"
+supports "fedora"
+supports "windows", ">= 6.0"
 
 depends "windows", "~> 1.8.0"

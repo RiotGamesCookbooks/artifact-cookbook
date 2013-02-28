@@ -45,15 +45,6 @@ def load_current_resource
     Chef::Application.fatal! "The name attribute for this resource is significant, and there cannot be whitespace. The preferred usage is to use the name of the artifact."
   end
 
-  if windows?
-    require 'chef/win32/file'
-    begin
-      Chef::ReservedNames::Win32::File.verify_links_supported!
-    rescue Chef::Exceptions::Win32APIFunctionNotImplemented
-      Chef::Application.fatal! "The artifact_deploy resource relies heavily upon symlinks. Windows versions prior to Windows Vista do not support symlinks."
-    end
-  end
-
   chef_gem "activesupport" do
     version "3.2.11"
   end
