@@ -83,6 +83,13 @@ class Chef
 
       private
 
+        # Returns the value of the readlink method depending on the
+        # passed in platform value.
+        # 
+        # @param  platform [String] the underlying platform
+        # @param  path [String] the path to a symlink
+        # 
+        # @return [String] the path that the symlink points to
         def readlink(platform, path)
           if platform =~ /windows/
             require 'chef/win32/file'
