@@ -45,6 +45,15 @@ def load_current_resource
     Chef::Application.fatal! "The name attribute for this resource is significant, and there cannot be whitespace. The preferred usage is to use the name of the artifact."
   end
 
+  if windows?
+    require 'chef/win32/file'
+    begin
+      Chef::ReservedNames::Win32::File.verify_links_supported!
+    rescue Chef::Exceptions::Win32APIFunctionNotImplemented
+      Chef::Application.fatal! "The artifact_deploy resource relies heavily upon symlinks. Windows versions prior to Windows Vista do not support symlinks."
+    end
+  end
+
   chef_gem "activesupport" do
     version "3.2.11"
   end
@@ -148,7 +157,7 @@ def extract_artifact!
         group new_resource.group
       end
     when /zip|war|jar/
-      if node[:platform] =~ /windows/
+      if windows?
         windows_zipfile release_path do
           source cached_tar_path
         end
@@ -560,4 +569,11 @@ private
     manifest = generate_manifest(release_path)
     Chef::Log.info "artifact_deploy[write_manifest] Writing manifest.yaml file to #{manifest_file}"
     ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
+  end
+
+  # Convenience method for determining whether or not the node is a Windows node.
+  # 
+  # @return [Fixnum or nil]
+  def windows?
+    node[:platform] =~ /windows/
   end

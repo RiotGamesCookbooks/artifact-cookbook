@@ -84,7 +84,7 @@ class Chef
       private
 
         def readlink(platform, path)
-          if platform && platform.match(/windows/)
+          if platform =~ /windows/
             require 'chef/win32/file'
             return Chef::ReservedNames::Win32::File.readlink(path)
           end
