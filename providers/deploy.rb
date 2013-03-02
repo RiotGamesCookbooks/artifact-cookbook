@@ -116,6 +116,7 @@ action :deploy do
 
   recipe_eval do
     if Chef::Artifact.windows?
+      # Needed until CHEF-3960 is fixed.
       execute "delete the symlink at #{new_resource.current_path}" do
         command "rmdir #{new_resource.current_path}"
         not_if {Chef::Artifact.symlink?(new_resource.current_path)}
