@@ -3,7 +3,62 @@ class Chef
     DATA_BAG = "artifact".freeze
     NEXUS_DBI = "nexus".freeze
 
+    module File
+      attr_accessor :platform
+
+      # Returns true if the given file is a symlink.
+      # 
+      # @param  path [String] the path to the file to test
+      # 
+      # @return [Boolean]
+      def symlink?(path)
+        if windows?
+          require 'chef/win32/file'
+          return Chef::ReservedNames::Win32::File.symlink?(path)
+        end
+        ::File.symlink?(path)        
+      end
+
+      # Returns the value of the readlink method depending on the
+      # passed in platform value.
+      # 
+      # @param  platform [String] the target systems platform
+      # @param  path [String] the path to a symlink
+      # 
+      # @return [String] the path that the symlink points to
+      def readlink(platform, path)
+        @platform = platform
+        if windows?
+          require 'chef/win32/file'
+          return Chef::ReservedNames::Win32::File.readlink(path)
+        end
+        ::File.readlink(path)
+      end
+
+      # Generates a command to execute that either uses the Unix cp
+      # command or the Windows copy command. 
+      #
+      # @param  source [String] the file to copy
+      # @param  destination [String] the path to copy the source to
+      # 
+      # @return [String] a useable command to copy a file
+      def copy_command_for(source, destination)
+        if windows?
+          %Q{copy "#{source}" "#{destination}"}.gsub(::File::SEPARATOR, ::File::ALT_SEPARATOR)
+        else
+         "cp -r #{source} #{destination}"
+        end
+      end
+
+      # @return [Fixnum or nil]
+      def windows?
+        @platform =~ /windows/
+      end
+    end
+
     class << self
+      include Chef::Artifact::File
+
       # Return the nexus data bag item. An encrypted data bag item will be used if we are
       # running as Chef Client and a standard data bag item will be used if running as
       # Chef Solo
@@ -92,23 +147,6 @@ class Chef
           ::File.basename(readlink(platform, current_dir))
         end
       end
-
-      private
-
-        # Returns the value of the readlink method depending on the
-        # passed in platform value.
-        # 
-        # @param  platform [String] the underlying platform
-        # @param  path [String] the path to a symlink
-        # 
-        # @return [String] the path that the symlink points to
-        def readlink(platform, path)
-          if platform =~ /windows/
-            require 'chef/win32/file'
-            return Chef::ReservedNames::Win32::File.readlink(path)
-          end
-          ::File.readlink(path)
-        end
     end
   end
 end
