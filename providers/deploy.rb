@@ -173,6 +173,23 @@ def extract_artifact!
     else
       Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
     end
+
+    # Working with artifacts that are packaged under an extra top level directory
+    # can be cumbersome. Remove it if a top level directory exists and the user 
+    # says to
+    release_pathname = Pathname.new(release_path)
+    ruby_block "remove top level" do
+      block do
+        top_level_dir = release_pathname.children.first.to_s
+        ::FileUtils.mv(release_pathname.children.first.children, release_path)
+        ::FileUtils.rm_rf(top_level_dir)
+      end
+      only_if { 
+        new_resource.remove_top_level_directory &&
+          release_pathname.children.size == 1 &&
+          release_pathname.children.first.directory?
+      }
+    end
   end
 end
 
@@ -219,7 +236,7 @@ def artifact_filename
     unless extension
       extension = "jar"
     end
-   "#{artifact_id}-#{version}.#{extension}"
+    "#{artifact_id}-#{version}.#{extension}"
   else
     ::File.basename(artifact_location)
   end
@@ -325,10 +342,10 @@ private
       Chef::Log.warn "artifact_deploy[has_manifest_changed?] Cannot load manifest.yaml. It may have been deleted. Deploying."
       return true
     end
-  
+
     current_manifest = generate_manifest(release_path)
     Chef::Log.info "artifact_deploy[has_manifest_changed?] Comparing saved manifest from #{release_path} with regenerated manifest from #{release_path}."
-    
+
     differences = !saved_manifest.diff(current_manifest).empty?
     if differences
       Chef::Log.info "artifact_deploy[has_manifest_changed?] Saved manifest from #{release_path} differs from regenerated manifest. Deploying."
