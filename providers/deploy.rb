@@ -49,8 +49,6 @@ def load_current_resource
     version "3.2.11"
   end
 
-  Chef::Artifact.platform = node[:platform]
-
   if from_nexus?(@new_resource.artifact_location)
     chef_gem "nexus_cli" do
       version "3.0.0"
@@ -358,7 +356,7 @@ private
 
   # @return [String] the current version the current symlink points to
   def get_current_release_version
-    Chef::Artifact.get_current_deployed_version(new_resource.deploy_to, node[:platform])
+    Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
   end
 
   # Returns a path to the artifact being installed by

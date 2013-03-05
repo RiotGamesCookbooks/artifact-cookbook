@@ -4,7 +4,6 @@ class Chef
     NEXUS_DBI = "nexus".freeze
 
     module File
-      attr_accessor :platform
 
       # Returns true if the given file is a symlink.
       # 
@@ -19,15 +18,12 @@ class Chef
         ::File.symlink?(path)        
       end
 
-      # Returns the value of the readlink method depending on the
-      # passed in platform value.
+      # Returns the value of the readlink method.
       # 
-      # @param  platform [String] the target systems platform
       # @param  path [String] the path to a symlink
       # 
       # @return [String] the path that the symlink points to
-      def readlink(platform, path)
-        @platform = platform
+      def readlink(path)
         if windows?
           require 'chef/win32/file'
           return Chef::ReservedNames::Win32::File.readlink(path)
@@ -52,7 +48,7 @@ class Chef
 
       # @return [Fixnum or nil]
       def windows?
-        @platform =~ /windows/
+        Chef::Platform.windows?
       end
     end
 
@@ -135,16 +131,16 @@ class Chef
       # points to.
       # 
       # @param  deploy_to_dir [String] the directory where an artifact is installed
-      # @param  platform [String] an optional parameter indicating the OS of the system
       # 
       # @example
       #   Chef::Artifact.get_current_deployed_version("/opt/my_deploy_dir") => "2.0.65"
       # 
       # @return [String] the currently deployed version of the given artifact
-      def get_current_deployed_version(deploy_to_dir, platform=nil)
+      def get_current_deployed_version(deploy_to_dir)
+
         current_dir = ::File.join(deploy_to_dir, "current")
         if ::File.exists?(current_dir)
-          ::File.basename(readlink(platform, current_dir))
+          ::File.basename(readlink(current_dir))
         end
       end
     end
