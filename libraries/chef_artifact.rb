@@ -3,7 +3,58 @@ class Chef
     DATA_BAG = "artifact".freeze
     NEXUS_DBI = "nexus".freeze
 
+    module File
+
+      # Returns true if the given file is a symlink.
+      # 
+      # @param  path [String] the path to the file to test
+      # 
+      # @return [Boolean]
+      def symlink?(path)
+        if windows?
+          require 'chef/win32/file'
+          return Chef::ReservedNames::Win32::File.symlink?(path)
+        end
+        ::File.symlink?(path)        
+      end
+
+      # Returns the value of the readlink method.
+      # 
+      # @param  path [String] the path to a symlink
+      # 
+      # @return [String] the path that the symlink points to
+      def readlink(path)
+        if windows?
+          require 'chef/win32/file'
+          return Chef::ReservedNames::Win32::File.readlink(path)
+        end
+        ::File.readlink(path)
+      end
+
+      # Generates a command to execute that either uses the Unix cp
+      # command or the Windows copy command. 
+      #
+      # @param  source [String] the file to copy
+      # @param  destination [String] the path to copy the source to
+      # 
+      # @return [String] a useable command to copy a file
+      def copy_command_for(source, destination)
+        if windows?
+          %Q{copy "#{source}" "#{destination}"}.gsub(::File::SEPARATOR, ::File::ALT_SEPARATOR)
+        else
+         "cp -r #{source} #{destination}"
+        end
+      end
+
+      # @return [Fixnum or nil]
+      def windows?
+        Chef::Platform.windows?
+      end
+    end
+
     class << self
+      include Chef::Artifact::File
+
       # Return the nexus data bag item. An encrypted data bag item will be used if we are
       # running as Chef Client and a standard data bag item will be used if running as
       # Chef Solo
@@ -35,7 +86,7 @@ class Chef
       # 
       # @param  node [Chef::Node] the node
       # @param  artifact_location [String] a colon-separated Maven identifier string that represents the artifact
-      # @param  ssl_verify [Boolean] a boolean to pass through the the NexusCli::RemoteFactory#create method. This
+      # @param  ssl_verify [Boolean] a boolean to pass through to the NexusCli::RemoteFactory#create method. This
       #   is a TERRIBLE IDEA and you should never want to set this to false!
       # 
       # @example
@@ -56,6 +107,18 @@ class Chef
         end
       end
 
+      # Downloads a file to disk from the configured Nexus server.
+      # 
+      # @param  node [Chef::Node] the node
+      # @param  source [String] a colon-separated Maven identified string that represents the artifact
+      # @param  destination_dir [String] a path to download the artifact to
+      #
+      # @option options [Boolean] :ssl_verify
+      #   a boolean to pass through to the NexusCli::RemoteFactory#create method indicated whether
+      #   ssl methods should or should not be verified.
+      # 
+      # @return [Hash] writes a file to disk and returns a Hash with
+      # information about that file. See NexusCli::ArtifactActions#pull_artifact.
       def retrieve_from_nexus(node, source, destination_dir, options = {})
         require 'nexus_cli'
         config = nexus_config_for(node)
@@ -74,9 +137,10 @@ class Chef
       # 
       # @return [String] the currently deployed version of the given artifact
       def get_current_deployed_version(deploy_to_dir)
+
         current_dir = ::File.join(deploy_to_dir, "current")
         if ::File.exists?(current_dir)
-          ::File.basename(::File.readlink(current_dir))
+          ::File.basename(readlink(current_dir))
         end
       end
     end
