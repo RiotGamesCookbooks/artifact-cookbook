@@ -113,9 +113,18 @@ action :deploy do
   end
 
   recipe_eval do
+    if Chef::Artifact.windows?
+      # Needed until CHEF-3960 is fixed.
+      symlink_changing = current_symlink_changing?
+      execute "delete the symlink at #{new_resource.current_path}" do
+        command "rmdir #{new_resource.current_path}"
+        only_if {Chef::Artifact.symlink?(new_resource.current_path) && symlink_changing}
+      end
+    end
+    
     link new_resource.current_path do
       to release_path
-      user new_resource.owner
+      owner new_resource.owner
       group new_resource.group
     end
   end
@@ -148,11 +157,18 @@ def extract_artifact!
         group new_resource.group
       end
     when /zip|war|jar/
-      package "unzip"
-      execute "extract_artifact!" do
-        command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
-        user new_resource.owner
-        group new_resource.group
+      if Chef::Artifact.windows?
+        windows_zipfile release_path do
+          source    cached_tar_path
+          overwrite true
+        end
+      else
+        package "unzip"
+        execute "extract_artifact!" do
+          command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
+          user    new_resource.owner
+          group   new_resource.group
+        end
       end
     else
       Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
@@ -164,13 +180,13 @@ end
 # the configured Chef::Config[:file_cache_path]/artifact_deploys
 # 
 # @example
-#   cp /tmp/vagrant-chef-1/artifact_deploys/artifact_test/1.0.0/my-artifact.zip /srv/artifact_test/releases/1.0.0
+#   cp /tmp/vagrant-chef-1/artifact_deploys/artifact_test/1.0.0/my-artifact /srv/artifact_test/releases/1.0.0
 # 
 # @return [void]
 def copy_artifact
   recipe_eval do
     execute "copy artifact" do
-      command "cp #{cached_tar_path} #{release_path}"
+      command Chef::Artifact.copy_command_for(cached_tar_path, release_path)
       user new_resource.owner
       group new_resource.group
     end
@@ -523,10 +539,10 @@ private
   # 
   # @return [void]
   def retrieve_from_local
-    file cached_tar_path do
-      content ::File.open(new_resource.artifact_location).read
-      owner new_resource.owner
-      group new_resource.group
+    execute "copy artifact from #{new_resource.artifact_location} to #{cached_tar_path}" do
+      command Chef::Artifact.copy_command_for(new_resource.artifact_location, cached_tar_path)
+      user    new_resource.owner
+      group   new_resource.group
     end
   end
 
@@ -539,7 +555,7 @@ private
   # @return [Hash] a mapping of file_path => SHA1 of that file
   def generate_manifest(files_path)
     Chef::Log.info "artifact_deploy[generate_manifest] Generating manifest for files in #{files_path}"
-    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ || ::File.symlink?(file) }
+    files_in_release_path = Dir[::File.join(files_path, "**/*")].reject { |file| ::File.directory?(file) || file =~ /manifest.yaml/ || Chef::Artifact.symlink?(file) }
 
     {}.tap do |map|
       files_in_release_path.each { |file| map[file] = Digest::SHA1.file(file).hexdigest }

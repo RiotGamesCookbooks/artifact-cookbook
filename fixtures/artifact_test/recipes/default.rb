@@ -8,15 +8,13 @@
 #
 
 group "artifact"
-user "artifact" do
-  group "artifact"
-end
+user "artifacts"
 
 artifact_deploy "artifact_test" do
   version node[:artifact_test][:version]
   artifact_location node[:artifact_test][:location]
   artifact_checksum node[:artifact_test][:checksum]
-  deploy_to "/srv/artifact_test"
+  deploy_to node[:artifact_test][:deploy_to]
   owner "artifact"
   group "artifact"
 

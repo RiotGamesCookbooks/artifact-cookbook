@@ -58,13 +58,13 @@ def initialize(*args)
 end
 
 def artifact_deploys_cache_path
-  "#{Chef::Config[:file_cache_path]}/artifact_deploys"
+  ::File.join(Chef::Config[:file_cache_path], "artifact_deploys")
 end
 
 def current_path
-  "#{self.deploy_to}/current"
+  ::File.join(self.deploy_to, "current")
 end
 
 def shared_path
-  "#{self.deploy_to}/shared"
+  ::File.join(self.deploy_to, "shared")
 end
