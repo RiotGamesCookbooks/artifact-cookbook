@@ -184,11 +184,11 @@ def extract_artifact!
         ::FileUtils.mv(release_pathname.children.first.children, release_path)
         ::FileUtils.rm_rf(top_level_dir)
       end
-      only_if { 
+      only_if do
         new_resource.remove_top_level_directory &&
           release_pathname.children.size == 1 &&
           release_pathname.children.first.directory?
-      }
+      end
     end
   end
 end
