@@ -1,3 +1,8 @@
+## v1.4.0
+
+* Add Windows support.
+* Add a new attribute for removing a top level directory from the extracted zip file.
+
 ## v1.3.1
 
 * Fix a bug where Nokogiri was still used.
