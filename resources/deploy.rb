@@ -52,6 +52,7 @@ attribute :restart, :kind_of            => Proc
 attribute :after_deploy, :kind_of       => Proc
 attribute :ssl_verify, :kind_of         => [ TrueClass, FalseClass ], :default => true
 attribute :remove_top_level_directory, :kind_of => [ TrueClass, FalseClass ], :default => false
+attribute :skip_manifest_check, :kind_of => [ TrueClass, FalseClass ], :default => false
 
 def initialize(*args)
   super
