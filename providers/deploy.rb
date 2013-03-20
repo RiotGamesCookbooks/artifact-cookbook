@@ -71,6 +71,7 @@ def load_current_resource
   @previous_version_numbers    = get_previous_version_numbers
   @manifest_file               = ::File.join(@release_path, "manifest.yaml")
   @deploy                      = false
+  @skip_manifest_check         = @new_resource.skip_manifest_check
   @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
@@ -131,7 +132,7 @@ action :deploy do
 
   run_proc :after_deploy
 
-  recipe_eval { write_manifest }
+  recipe_eval { write_manifest } unless skip_manifest_check?
   delete_previous_versions!
 
   new_resource.updated_by_last_action(true)
@@ -335,6 +336,11 @@ private
   def has_manifest_changed?
     require 'active_support/core_ext/hash'
 
+    if skip_manifest_check?
+      Chef::Log.info "artifact_deploy[has_manifest_changed?] Skip Manifest Check attribute is true. Skipping manifest check."
+      return false
+    end
+
     Chef::Log.info "artifact_deploy[has_manifest_changed?] Loading manifest.yaml file from directory: #{release_path}"
     begin
       saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
@@ -369,6 +375,11 @@ private
   # @return [Boolean] the deploy instance variable
   def deploy?
     @deploy
+  end
+
+  # @return [Boolean] the skip_manifest_check instance variable
+  def skip_manifest_check?
+    @skip_manifest_check
   end
 
   # @return [String] the current version the current symlink points to

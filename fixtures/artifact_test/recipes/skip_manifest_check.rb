@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Recipe:: default
+# Recipe:: skip_manifest_check
 #
 # Copyright 2012, Riot Games
 #
@@ -17,6 +17,13 @@ artifact_deploy "artifact_test" do
   deploy_to node[:artifact_test][:deploy_to]
   owner "artifacts"
   group "artifact"
-
+  skip_manifest_check true
   action :deploy
+end
+
+ruby_block "make sure manifest.yaml does not exist" do
+  block do
+    manifest_file = ::File.join(node[:artifact_test][:deploy_to], "current", "manifest.yaml")
+    Chef::Application.fatal! "Manifest file exists!" if ::File.exists?(manifest_file)
+  end
 end

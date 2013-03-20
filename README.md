@@ -5,6 +5,7 @@ Provides your cookbooks with the Artifact Deploy LWRP
 # Requirements
 
 * Chef 10
+* Vagrant
 
 # Platforms
 
@@ -14,6 +15,10 @@ Provides your cookbooks with the Artifact Deploy LWRP
   * Windows Vista
   * Windows 2008 R2
   * Windows 7
+
+# Vagrant
+
+With Vagrant 1.1, there is no longer a Vagrant RubyGem to install. Instead, follow the instructions on the [VagrantUp](http://docs.vagrantup.com/v2/installation/index.html) documentation pages.
 
 # Resources / Providers
 
