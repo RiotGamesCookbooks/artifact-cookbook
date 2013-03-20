@@ -1,3 +1,7 @@
+## v1.5.0
+
+* Add a new attribute for skipping the manifest creation and checking for an artifact. Useful for large artifacts.
+
 ## v1.4.0
 
 * Add Windows support.
