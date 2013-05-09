@@ -1,3 +1,4 @@
+name             "artifact_test"
 maintainer       "Riot Games"
 maintainer_email "YOUR_EMAIL"
 license          "All rights reserved"
