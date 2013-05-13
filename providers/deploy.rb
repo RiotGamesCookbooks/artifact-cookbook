@@ -488,20 +488,18 @@ private
   # 
   # @return [void]
   def retrieve_artifact!
-    if not ::File.exists?(cached_tar_path)
-      recipe_eval do
-        if from_http?(new_resource.artifact_location)
-          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
-          retrieve_from_http
-        elsif from_nexus?(new_resource.artifact_location)
-          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
-          retrieve_from_nexus
-        elsif ::File.exist?(new_resource.artifact_location)
-          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
-          retrieve_from_local
-        else
-          Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
-        end
+    recipe_eval do
+      if from_http?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
+        retrieve_from_http
+      elsif from_nexus?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
+        retrieve_from_nexus
+      elsif ::File.exist?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
+        retrieve_from_local
+      else
+        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
       end
     end
   end
@@ -550,16 +548,17 @@ private
     end
   end
 
-  # Defines a ruby_block resource call to download an artifact from Nexus.
+  # Defines a remote_file resource call to download an artifact from Nexus.
   # 
   # @return [void]
   def retrieve_from_nexus
-    ruby_block "retrieve from nexus" do
-      block do
-        unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
-          Chef::Artifact.retrieve_from_nexus(node, artifact_location, artifact_cache_version_path, ssl_verify: new_resource.ssl_verify)
-        end
-      end
+    remote_file cached_tar_path do
+      source Chef::Artifact.artifact_download_url_for(node, new_resource.artifact_location)
+      owner new_resource.owner
+      group new_resource.group
+      checksum new_resource.artifact_checksum
+      backup false
+      action :create
     end
   end
 

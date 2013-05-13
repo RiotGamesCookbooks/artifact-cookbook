@@ -126,6 +126,16 @@ class Chef
         remote.pull_artifact(source, destination_dir)
       end
 
+      # TODO: This method should probably move into the Nexus-CLI
+      def artifact_download_url_for(node, source)
+        config = nexus_config_for(node)
+        group_id, artifact_id, version, extension = source.split(':')
+        query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}"
+        uri_for_url = URI(config['url'])
+        builder = uri_for_url.scheme =~ /https/ ? URI::HTTPS : URI::HTTP
+        builder.build(host: uri_for_url.host, port: uri_for_url.port, path: '/nexus/service/local/artifact/maven/redirect', query: query_string).to_s
+      end
+
       # Returns the currently deployed version of an artifact given that artifacts
       # installation directory by reading what directory the 'current' symlink
       # points to.
