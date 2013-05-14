@@ -10,4 +10,7 @@ platforms:
 suites:
 - name: default
   run_list: ["recipe[artifact_test]"]
-  attributes: {}
+  attributes: 
+    artifact_test:
+      version: "1.2.3"
+      location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
