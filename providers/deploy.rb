@@ -72,12 +72,14 @@ def load_current_resource
   @manifest_file               = ::File.join(@release_path, "manifest.yaml")
   @deploy                      = false
   @skip_manifest_check         = @new_resource.skip_manifest_check
+  @remove_on_force             = @new_resource.remove_on_force
   @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
 
 action :deploy do
+  delete_current_if_forcing!
   setup_deploy_directories!
   setup_shared_directories!
 
@@ -243,10 +245,25 @@ def artifact_filename
   end
 end
 
+# Deletes the current version if and only if it is the same
+# as the one to be installed, we are forcing, and remove_on_force is
+# set. Only bad people will use this.
+def delete_current_if_forcing!
+  return unless @new_resource.force && remove_on_force? && (get_current_release_version == artifact_version || previous_version_numbers.include?(artifact_version))
+  recipe_eval do
+    log "artifact_deploy[delete_current_if_forcing!] #{artifact_version} deleted because remove_on_force is true" do
+      level :info
+    end 
+
+    directory ::File.join(new_resource.deploy_to, 'releases', artifact_version) do
+      recursive true
+      action :delete
+    end
+  end
+end
+
 # Deletes released versions of the artifact when the number of 
 # released versions exceeds the :keep value.
-# 
-# @return [type] [description]
 def delete_previous_versions!
   recipe_eval do
     versions_to_delete = []
@@ -380,6 +397,11 @@ private
   # @return [Boolean] the skip_manifest_check instance variable
   def skip_manifest_check?
     @skip_manifest_check
+  end
+
+  # @return [Boolean] the remove_on_force instance variable
+  def remove_on_force?
+    @remove_on_force
   end
 
   # @return [String] the current version the current symlink points to

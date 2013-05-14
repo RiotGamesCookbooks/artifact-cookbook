@@ -5,6 +5,7 @@ artifact_deploy "artifact_test" do
   deploy_to node[:artifact_test][:deploy_to]
   owner "artifacts"
   group "artifact"
-
+  force true
+  remove_on_force true
   action :deploy
 end
