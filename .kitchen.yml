@@ -14,3 +14,9 @@ suites:
     artifact_test:
       version: "1.2.3"
       location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
+- name: forcing
+  run_list: ["recipe[artifact_test::default]", "recipe[artifact_test::force_install]"]
+  attributes: 
+    artifact_test:
+      version: "1.2.3"
+      location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
