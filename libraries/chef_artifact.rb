@@ -126,8 +126,20 @@ class Chef
         remote.pull_artifact(source, destination_dir)
       end
 
-      # TODO: This method should probably move into the Nexus-CLI
+      
+      # Generates a URL that hits the Nexus redirect endpoint which will
+      # result in an artifact being downloaded.
+      #
+      # @example
+      #   Chef::Artifact.artifact_download_url_for(node, "com.myartifact:my-artifact:1.0.1:tgz")
+      #     => "http://my-nexus:8081/nexus/service/local/artifact/maven/redirect?g=com.myartifact&a=my-artifact&v=1.0.1&e=tgz&r=my_repo"
+      #
+      # @param  node [Chef::Node]
+      # @param  source [String] colon separated Nexus location
+      # 
+      # @return [String] a URL that can be used to retrieve an artifact
       def artifact_download_url_for(node, source)
+        # TODO: Move this method into the nexus-cli
         config = nexus_config_for(node)
         group_id, artifact_id, version, extension = source.split(':')
         query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}"
