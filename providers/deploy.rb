@@ -249,7 +249,10 @@ end
 # as the one to be installed, we are forcing, and remove_on_force is
 # set. Only bad people will use this.
 def delete_current_if_forcing!
-  return unless @new_resource.force && remove_on_force? && (get_current_release_version == artifact_version || previous_version_numbers.include?(artifact_version))
+  return unless @new_resource.force 
+  return unless remove_on_force? 
+  return unless get_current_release_version == artifact_version || previous_version_numbers.include?(artifact_version)
+
   recipe_eval do
     log "artifact_deploy[delete_current_if_forcing!] #{artifact_version} deleted because remove_on_force is true" do
       level :info
