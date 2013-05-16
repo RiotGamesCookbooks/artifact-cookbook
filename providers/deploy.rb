@@ -72,12 +72,14 @@ def load_current_resource
   @manifest_file               = ::File.join(@release_path, "manifest.yaml")
   @deploy                      = false
   @skip_manifest_check         = @new_resource.skip_manifest_check
+  @remove_on_force             = @new_resource.remove_on_force
   @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
 end
 
 action :deploy do
+  delete_current_if_forcing!
   setup_deploy_directories!
   setup_shared_directories!
 
@@ -243,10 +245,28 @@ def artifact_filename
   end
 end
 
+# Deletes the current version if and only if it is the same
+# as the one to be installed, we are forcing, and remove_on_force is
+# set. Only bad people will use this.
+def delete_current_if_forcing!
+  return unless @new_resource.force 
+  return unless remove_on_force? 
+  return unless get_current_release_version == artifact_version || previous_version_numbers.include?(artifact_version)
+
+  recipe_eval do
+    log "artifact_deploy[delete_current_if_forcing!] #{artifact_version} deleted because remove_on_force is true" do
+      level :info
+    end 
+
+    directory ::File.join(new_resource.deploy_to, 'releases', artifact_version) do
+      recursive true
+      action :delete
+    end
+  end
+end
+
 # Deletes released versions of the artifact when the number of 
 # released versions exceeds the :keep value.
-# 
-# @return [type] [description]
 def delete_previous_versions!
   recipe_eval do
     versions_to_delete = []
@@ -382,6 +402,11 @@ private
     @skip_manifest_check
   end
 
+  # @return [Boolean] the remove_on_force instance variable
+  def remove_on_force?
+    @remove_on_force
+  end
+
   # @return [String] the current version the current symlink points to
   def get_current_release_version
     Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
@@ -488,20 +513,18 @@ private
   # 
   # @return [void]
   def retrieve_artifact!
-    if not ::File.exists?(cached_tar_path)
-      recipe_eval do
-        if from_http?(new_resource.artifact_location)
-          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
-          retrieve_from_http
-        elsif from_nexus?(new_resource.artifact_location)
-          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
-          retrieve_from_nexus
-        elsif ::File.exist?(new_resource.artifact_location)
-          Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
-          retrieve_from_local
-        else
-          Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
-        end
+    recipe_eval do
+      if from_http?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
+        retrieve_from_http
+      elsif from_nexus?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
+        retrieve_from_nexus
+      elsif ::File.exist?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
+        retrieve_from_local
+      else
+        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
       end
     end
   end
@@ -550,16 +573,17 @@ private
     end
   end
 
-  # Defines a ruby_block resource call to download an artifact from Nexus.
+  # Defines a remote_file resource call to download an artifact from Nexus.
   # 
   # @return [void]
   def retrieve_from_nexus
-    ruby_block "retrieve from nexus" do
-      block do
-        unless ::File.exists?(cached_tar_path) && Chef::ChecksumCache.checksum_for_file(cached_tar_path) == new_resource.artifact_checksum
-          Chef::Artifact.retrieve_from_nexus(node, artifact_location, artifact_cache_version_path, ssl_verify: new_resource.ssl_verify)
-        end
-      end
+    remote_file cached_tar_path do
+      source Chef::Artifact.artifact_download_url_for(node, new_resource.artifact_location)
+      owner new_resource.owner
+      group new_resource.group
+      checksum new_resource.artifact_checksum
+      backup false
+      action :create
     end
   end
 
@@ -571,6 +595,7 @@ private
       command Chef::Artifact.copy_command_for(new_resource.artifact_location, cached_tar_path)
       user    new_resource.owner
       group   new_resource.group
+      only_if { !::File.exists?(cached_tar_path) || !FileUtils.compare_file(new_resource.artifact_location, cached_tar_path) }
     end
   end
 

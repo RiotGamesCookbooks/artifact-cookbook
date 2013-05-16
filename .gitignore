@@ -6,3 +6,4 @@ fixtures/databags/
 .kitchen/
 .kitchen.local.yml
 .vagrant
+.DS_Store
