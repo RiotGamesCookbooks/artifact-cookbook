@@ -559,8 +559,6 @@ private
   end
 
   # Defines a resource call for downloading the remote artifact.
-  # 
-  # @return [void]
   def retrieve_from_http
     remote_file cached_tar_path do
       source new_resource.artifact_location
@@ -574,9 +572,11 @@ private
   end
 
   # Defines a remote_file resource call to download an artifact from Nexus.
-  # 
-  # @return [void]
   def retrieve_from_nexus
+    log "artifact_deploy[retrieve_from_nexus] Retrieving artifact from Nexus with identifier of #{new_resource.artifact_location}." do
+      level :info
+    end
+
     remote_file cached_tar_path do
       source Chef::Artifact.artifact_download_url_for(node, new_resource.artifact_location)
       owner new_resource.owner
@@ -588,8 +588,6 @@ private
   end
 
   # Defines a resource call for a file already on the file system.
-  # 
-  # @return [void]
   def retrieve_from_local
     execute "copy artifact from #{new_resource.artifact_location} to #{cached_tar_path}" do
       command Chef::Artifact.copy_command_for(new_resource.artifact_location, cached_tar_path)

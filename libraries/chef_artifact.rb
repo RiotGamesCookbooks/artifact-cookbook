@@ -101,6 +101,7 @@ class Chef
           require 'rexml/document'
           config = nexus_config_for(node)
           remote = NexusCli::RemoteFactory.create(config, ssl_verify)
+          Chef::Log.info "artifact_deploy[get_actual_version] Finding latest version for #{artifact_location}."
           REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//version"].text
         else
           version
