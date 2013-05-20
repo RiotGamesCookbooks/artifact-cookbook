@@ -27,5 +27,11 @@ class Chef
         "[artifact] Unable to locate the Artifact data bag item '#{data_bag_key}' for your environment '#{environment}'."
       end
     end
+
+    class DataBagEncryptionError < ArtifactError
+      def message
+        "[artifact] An error occured while decrypting the data bag item. Your secret key may be incorrect or you may be using Chef 11 to read a Chef 10 data bag."
+      end
+    end
   end
 end

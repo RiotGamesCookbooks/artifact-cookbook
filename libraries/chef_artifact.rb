@@ -1,7 +1,7 @@
 class Chef
   module Artifact
     DATA_BAG = "artifact".freeze
-    NEXUS_DBI = "nexus".freeze
+    WILDCARD_DATABAG_ITEM = "_wildcard".freeze
 
     module File
 
@@ -55,29 +55,19 @@ class Chef
     class << self
       include Chef::Artifact::File
 
-      # Return the nexus data bag item. An encrypted data bag item will be used if we are
-      # running as Chef Client and a standard data bag item will be used if running as
-      # Chef Solo
+      # Loads the Nexus encrypted data bag item and returns credentials
+      # for the environment or for a default key.
       #
-      # @return [Chef::DataBagItem, Chef::EncryptedDataBagItem]
-      def load_nexus_dbi
-        if Chef::Config[:solo]
-          Chef::DataBagItem.load(DATA_BAG, NEXUS_DBI)
-        else
-          Chef::EncryptedDataBagItem.load(DATA_BAG, NEXUS_DBI)
-        end
-      rescue Net::HTTPServerException
-        raise EncryptedDataBagNotFound.new(NEXUS_DBI)
-      end
-
+      # @param  node [Chef::Node] the Chef node
+      # 
+      # @return [Chef::DataBagItem] the data bag item
       def nexus_config_for(node)
-        data_bag_item = load_nexus_dbi
-
-        config = data_bag_item[node.chef_environment] || data_bag_item["*"]
-        unless config
-          raise EnvironmentNotFound.new(NEXUS_DBI, node.chef_environment)
+        data_bag_item = if Chef::Config[:solo]
+          Chef::DataBagItem.load(DATA_BAG, WILDCARD_DATABAG_ITEM)
+        else
+          encrypted_data_bag_for(node, DATA_BAG)
         end
-        config
+        data_bag_item
       end
 
       # Uses the provided parameters to make a call to the data bag
@@ -126,7 +116,6 @@ class Chef
         remote.pull_artifact(source, destination_dir)
       end
 
-      
       # Generates a URL that hits the Nexus redirect endpoint which will
       # result in an artifact being downloaded.
       #
@@ -165,6 +154,33 @@ class Chef
           ::File.basename(readlink(current_dir))
         end
       end
+
+      def encrypted_data_bags
+        @encrypted_data_bags
+      end
+
+      private
+        def encrypted_data_bag_for(node, data_bag)
+          @encrypted_data_bags = {} unless @encrypted_data_bags
+
+          if encrypted_data_bags[data_bag]
+            return encrypted_data_bags[data_bag]
+          else
+            data_bag_item = encrypted_data_bag_item(data_bag, node.chef_environment)
+            data_bag_item ||= encrypted_data_bag_item(data_bag, WILDCARD_DATABAG_ITEM)
+            encrypted_data_bags[data_bag] = data_bag_item
+            return data_bag_item
+          end
+          raise EncryptedDataBagNotFound.new(data_bag)
+        end
+
+        def encrypted_data_bag_item(data_bag, data_bag_item)
+          Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
+        rescue Net::HTTPServerException => e
+          nil
+        rescue NoMethodError
+          raise DataBagEncryptionError.new
+        end
     end
   end
 end
