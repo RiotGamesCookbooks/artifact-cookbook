@@ -168,6 +168,7 @@ class Chef
           else
             data_bag_item = encrypted_data_bag_item(data_bag, node.chef_environment)
             data_bag_item ||= encrypted_data_bag_item(data_bag, WILDCARD_DATABAG_ITEM)
+            data_bag_item ||= encrypted_data_bag_item(data_bag, "nexus")
             encrypted_data_bags[data_bag] = data_bag_item
             return data_bag_item
           end
