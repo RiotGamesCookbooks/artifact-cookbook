@@ -155,33 +155,61 @@ class Chef
         end
       end
 
+      # Looks for the given data bag in the cache and if not found, will load a
+      # data bag item named for the chef_environment, '_wildcard', or the old 
+      # 'nexus' value.
+      #
+      # @param  node [Chef::Node] the node
+      # @param  data_bag [String] the data bag to load
+      # 
+      # @return [Chef::Mash] the data bag item in Mash form
+      def encrypted_data_bag_for(node, data_bag)
+        @encrypted_data_bags = {} unless @encrypted_data_bags
+
+        if encrypted_data_bags[data_bag]
+          return get_from_data_bags_cache(data_bag)
+        else
+          data_bag_item = encrypted_data_bag_item(data_bag, node.chef_environment)
+          data_bag_item ||= encrypted_data_bag_item(data_bag, WILDCARD_DATABAG_ITEM)
+          data_bag_item ||= encrypted_data_bag_item(data_bag, "nexus")
+          @encrypted_data_bags[data_bag] = data_bag_item
+          return data_bag_item
+        end
+        raise EncryptedDataBagNotFound.new(data_bag)
+      end
+
+      # @return [Hash]
       def encrypted_data_bags
         @encrypted_data_bags
       end
 
-      private
-        def encrypted_data_bag_for(node, data_bag)
-          @encrypted_data_bags = {} unless @encrypted_data_bags
+      # Loads an entry from the encrypted_data_bags class variable.
+      #
+      # @param data_bag [String] the data bag to find
+      # 
+      # @return [type] [description]
+      def get_from_data_bags_cache(data_bag)
+        encrypted_data_bags[data_bag]
+      end
 
-          if encrypted_data_bags[data_bag]
-            return encrypted_data_bags[data_bag]
-          else
-            data_bag_item = encrypted_data_bag_item(data_bag, node.chef_environment)
-            data_bag_item ||= encrypted_data_bag_item(data_bag, WILDCARD_DATABAG_ITEM)
-            data_bag_item ||= encrypted_data_bag_item(data_bag, "nexus")
-            encrypted_data_bags[data_bag] = data_bag_item
-            return data_bag_item
-          end
-          raise EncryptedDataBagNotFound.new(data_bag)
-        end
-
-        def encrypted_data_bag_item(data_bag, data_bag_item)
-          Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
-        rescue Net::HTTPServerException => e
-          nil
-        rescue NoMethodError
-          raise DataBagEncryptionError.new
-        end
+      # Loads an EncryptedDataBagItem from the Chef server and
+      # turns it into a Chef::Mash, giving it indifferent access. Returns
+      # nil when a data bag item is not found.
+      #
+      # @param  data_bag [String]
+      # @param  data_bag_item [String]
+      # 
+      # @raise [Chef::Artifact::DataBagEncryptionError] when the data bag cannot be decrypted
+      #   or transformed into a Mash for some reason (Chef 10 vs Chef 11 data bag changes).
+      # 
+      # @return [Chef::Mash]
+      def encrypted_data_bag_item(data_bag, data_bag_item)
+        Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
+      rescue Net::HTTPServerException => e
+        nil
+      rescue NoMethodError
+        raise DataBagEncryptionError.new
+      end
     end
   end
 end
