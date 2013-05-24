@@ -158,12 +158,14 @@ def extract_artifact!
         command "tar xf #{cached_tar_path} -C #{release_path}"
         user new_resource.owner
         group new_resource.group
+        retries 2
       end
     when /zip|war|jar/
       if Chef::Artifact.windows?
         windows_zipfile release_path do
           source    cached_tar_path
           overwrite true
+          retries 2
         end
       else
         package "unzip"
@@ -171,6 +173,7 @@ def extract_artifact!
           command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
           user    new_resource.owner
           group   new_resource.group
+          retries 2
         end
       end
     else
