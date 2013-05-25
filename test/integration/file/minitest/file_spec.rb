@@ -2,9 +2,9 @@ require 'minitest/autorun'
 
 describe "file" do
   
-  describe "when an artifact with the same version but different files is installed" do
-    it "has the new files" do
-      assert File.exists?("/srv/artifact_test/current/artifact_test_app/lib/foo.rb")
+  describe "when you create a new file" do
+    it "exists" do
+      assert File.exists?("/srv/file_test/")
     end
 
     it "no longer has the deleted files" do
