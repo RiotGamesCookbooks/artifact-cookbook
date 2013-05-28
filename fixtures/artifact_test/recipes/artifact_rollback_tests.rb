@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: artifact_rollback_tests
+# Recipe:: artifact_rollback_tests
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

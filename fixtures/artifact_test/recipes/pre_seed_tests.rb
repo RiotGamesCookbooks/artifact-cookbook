@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: pre_seed_tests
+# Recipe:: pre_seed_tests
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

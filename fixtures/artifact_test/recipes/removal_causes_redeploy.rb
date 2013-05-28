@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: removal_causes_redeploy
+# Recipe:: removal_causes_redeploy
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

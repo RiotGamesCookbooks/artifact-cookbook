@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: manifest_differences_tests
+# Recipe:: manifest_differences_tests
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

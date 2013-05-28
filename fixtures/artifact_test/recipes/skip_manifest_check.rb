@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: skip_manifest_check
+# Recipe:: skip_manifest_check
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

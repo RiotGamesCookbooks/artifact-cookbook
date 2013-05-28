@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: windows
+# Recipe:: windows
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

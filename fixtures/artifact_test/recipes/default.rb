@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: default
+# Recipe:: default
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

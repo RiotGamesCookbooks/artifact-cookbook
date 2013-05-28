@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: symlink_tests
+# Recipe:: symlink_tests
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 

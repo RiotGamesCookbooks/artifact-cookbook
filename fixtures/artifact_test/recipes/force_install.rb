@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Provider:: force_install
+# Recipe:: force_install
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 
