@@ -137,6 +137,14 @@ class Chef
         builder.build(host: uri_for_url.host, port: uri_for_url.port, path: '/nexus/service/local/artifact/maven/redirect', query: query_string).to_s
       end
 
+      def get_artifact_sha(node, location)
+        require 'nexus_cli'
+        require 'rexml/document'
+        config = nexus_config_for(node)
+        remote = NexusCli::RemoteFactory.create(config, ssl_verify)
+        REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
+      end
+
       # Returns true when the artifact is believed to be from a
       # Nexus source.
       #

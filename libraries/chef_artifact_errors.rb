@@ -33,5 +33,11 @@ class Chef
         "[artifact] An error occured while decrypting the data bag item. Your secret key may be incorrect or you may be using Chef 11 to read a Chef 10 data bag."
       end
     end
+
+    class ArtifactChecksumError < ArtifactError
+      def message
+        "[artifact] Downloaded file checksum does not match the provided checksum. File corruption may have occurred."
+      end
+    end
   end
 end
