@@ -137,7 +137,15 @@ class Chef
         builder.build(host: uri_for_url.host, port: uri_for_url.port, path: '/nexus/service/local/artifact/maven/redirect', query: query_string).to_s
       end
 
-      def get_artifact_sha(node, location)
+      # Makes a call to Nexus and parses the returned XML to return
+      # the Nexus Server's stored SHA1 checksum for the given artifact.
+      #
+      # @param  node [Chef::Node] the node
+      # @param  artifact_location [String] a colon-separated Maven identifier that represents the artifact
+      # @param  ssl_verify=true [Boolean] whether or not ssl methods will be verified
+      #
+      # @return [String] the SHA1 entry for the artifact
+      def get_artifact_sha(node, artifact_location, ssl_verify=true)
         require 'nexus_cli'
         require 'rexml/document'
         config = nexus_config_for(node)

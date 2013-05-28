@@ -22,8 +22,17 @@ attr_reader :file_location
 
 def load_current_resource
   @from_nexus = Chef::Artifact.from_nexus?(new_resource.location)
-  @file_location = from_nexus? ? Chef::Artifact.artifact_download_url_for(node, new_resource.location) : new_resource.location
-  
+
+  if from_nexus?
+    chef_gem "nexus_cli" do
+      version "3.0.0"
+    end
+
+    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location)
+  else
+    @file_location = new_resource.location
+  end
+
   @current_resource = Chef::Resource::ArtifactFile.new(@new_resource.name)
   @current_resource
 end
@@ -43,6 +52,12 @@ action :create do
   end
 end
 
+# For a Nexus artifact, checks the downloaded file's SHA1 checksum
+# against the Nexus Server's entry for the file. For normal HTTP artifact,
+# check the passed through checksum or just assume the file is fine.
+#
+# @return [Boolean] true if the downloaded file's checksum
+#   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
   if from_nexus?
@@ -57,6 +72,11 @@ def checksum_valid?
   end
 end
 
+# Creates a remote_file resource that will download the artifact
+# and has default idempotency. The action is set to nothing so that
+# it can be called later.
+#
+# @return [Chef::Resource::RemoteFile]
 def remote_file_resource
   @remote_file_resource ||= remote_file new_resource.name do
     source file_location
@@ -69,6 +89,7 @@ def remote_file_resource
   @remote_file_resource
 end
 
+# @return [Boolean]
 def from_nexus?
   @from_nexus
 end
