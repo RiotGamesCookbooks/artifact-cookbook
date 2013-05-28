@@ -22,9 +22,8 @@
 group "artifact"
 user "artifacts"
 
-artifact_file "" do
-  location ""
-  checksum ""
+artifact_file "/tmp/maven.tar.gz" do
+  location node[:artifact_test][:file_url]
   owner "artifacts"
   group "artifact"
 end

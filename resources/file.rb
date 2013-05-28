@@ -25,5 +25,7 @@ default_action :create
 attribute :path, :kind_of => String, :required => true, :name_attribute => true
 attribute :location, :kind_of => String
 attribute :checksum, :kind_of  => String
+attribute :force, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :group, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
+attribute :retries, :kind_of => Fixnum, :default => 1
