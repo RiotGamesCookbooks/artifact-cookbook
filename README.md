@@ -140,10 +140,10 @@ for the downloaded files. Below is a brief description of the logic flow for the
 * Download the file using remote_file resource.
 * Check the file's integrity
   * Is it from the Nexus?
-    * Check the SHA1 of the downloaded file against Nexus Server's SHA1. Returns false if they are not equal.
-  * Is the checksum attribute defined for the resource?
-    * If defined - Check the SHA256 of the downloaded file against the checksum attribute. Returns false if they are not equal.
-    * If not defined - log a message and return true.
+      * Check the SHA1 of the downloaded file against Nexus Server's SHA1. Returns false if they are not equal.
+  * Not from Nexus - Is the checksum attribute defined for the resource?
+      * If defined - Check the SHA256 of the downloaded file against the checksum attribute. Returns false if they are not equal.
+      * If not defined - log a message and return true.
 
 When the logic returns true, the downloaded file is considered good and the resource will exit. When the logic above returns false, the downloaded file is considered
 corrupt and an attempt will be made to download the file again. The number of retries can be controlled with the `download_retries` attribute. 
