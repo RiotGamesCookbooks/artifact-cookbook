@@ -300,6 +300,24 @@ If many environments share the same configuration, you can use "*" as a wildcard
       force             node[:force_deploy]
     end
 
+##### Using artifact_file to download a file from a URL
+
+    artifact_file "/tmp/my-artifact.tgz" do
+      location "http://www.my-website.com/my-artifact-1.0.0.tgz"
+      owner "me"
+      group "mes"
+      action :create
+    end
+
+#### Using artifact_file to download a file from Nexus
+
+    artifact_file "/tmp/my-artifact.tgz" do
+      location "com.test:my-artifact:1.0.0:tgz"
+      owner "me"
+      group "mes"
+      action :create
+    end
+
   Configuring your resource in this manner will allow you to ensure it can always change when you need it to. In other words,
   configuring the `force` attribute to a node attribute, will allow you to change some of the more finer grained aspects of the
   resource. For example, when force is true, you can also change the value of owner and group to remap the deployed artifact to
