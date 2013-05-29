@@ -1,9 +1,9 @@
 #
-# Cookbook Name:: artifact_test
-# Recipe:: windows
+# Cookbook Name:: artifact
+# Resource:: file
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,14 +19,12 @@
 # limitations under the License.
 #
 
-user "artifact"
+actions :create
+default_action :create
 
-artifact_deploy "artifact_test" do
-  version           node[:artifact_test][:version]
-  artifact_location node[:artifact_test][:location]
-  artifact_checksum node[:artifact_test][:checksum]
-  deploy_to         node[:artifact_test][:deploy_to]
-  owner             "artifact"
-  group             "artifact"
-  action            :deploy
-end
+attribute :path, :kind_of => String, :required => true, :name_attribute => true
+attribute :location, :kind_of => String
+attribute :checksum, :kind_of  => String
+attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
+attribute :group, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
+attribute :download_retries, :kind_of => Integer, :default => 1
