@@ -45,7 +45,7 @@ action :create do
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
       retries -= 1
-      Chef::Log.info "[artifact_file] Retrying Nexus download, #{retries} attempt(s) left."
+      Chef::Log.info "[artifact_file] Downloaded file checksum does not match the provided checksum. Retrying - #{retries} attempt(s) left."
       retry
     end
     raise Chef::Artifact::ArtifactChecksumError

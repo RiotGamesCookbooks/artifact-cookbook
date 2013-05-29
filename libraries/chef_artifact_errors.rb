@@ -36,7 +36,7 @@ class Chef
 
     class ArtifactChecksumError < ArtifactError
       def message
-        "[artifact] Downloaded file checksum does not match the provided checksum. File corruption may have occurred."
+        "[artifact] Downloaded file checksum does not match the provided checksum. Your download may be corrupted or your checksum may not be correct."
       end
     end
   end
