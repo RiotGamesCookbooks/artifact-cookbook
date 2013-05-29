@@ -1,3 +1,13 @@
+## v1.6.0
+
+* [#70] Added a new LWRP, artifact\_file which wraps remote_file with some retry logic for corrupt downloads. Also uses the configured Nexus server to check Nexus downloads.
+* Use artifact\_file for downloading HTTP or Nexus artifacts in artifact\_deploy.
+* [#28] Add a new attribute for deleting the currently deployed artifact when a force deploy is issued. Useful for local iteration on a changing artifact with the same version.
+* [#60] Add retries to execute resources for tar extraction.
+* [#66], [#67] Cache the Encrypted Data Bag Item for Nexus. Looks for an environment-named data bag item, then "\_wildcard", and finally "nexus" for backwards compatibility.
+* Support RSpec testing of the Library files.
+* [#65] Support Test-Kitchen
+
 ## v1.5.0
 
 * Add a new attribute for skipping the manifest creation and checking for an artifact. Useful for large artifacts.
