@@ -20,3 +20,5 @@ suites:
     artifact_test:
       version: "1.2.3"
       location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
+- name: file
+  run_list: ["recipe[artifact_test::file]"]

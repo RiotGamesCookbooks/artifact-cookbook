@@ -137,6 +137,42 @@ class Chef
         builder.build(host: uri_for_url.host, port: uri_for_url.port, path: '/nexus/service/local/artifact/maven/redirect', query: query_string).to_s
       end
 
+      # Makes a call to Nexus and parses the returned XML to return
+      # the Nexus Server's stored SHA1 checksum for the given artifact.
+      #
+      # @param  node [Chef::Node] the node
+      # @param  artifact_location [String] a colon-separated Maven identifier that represents the artifact
+      # @param  ssl_verify=true [Boolean] whether or not ssl methods will be verified
+      #
+      # @return [String] the SHA1 entry for the artifact
+      def get_artifact_sha(node, artifact_location, ssl_verify=true)
+        require 'nexus_cli'
+        require 'rexml/document'
+        config = nexus_config_for(node)
+        remote = NexusCli::RemoteFactory.create(config, ssl_verify)
+        REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
+      end
+
+      # Returns true when the artifact is believed to be from a
+      # Nexus source.
+      #
+      # @param  location [String] the artifact_location
+      # 
+      # @return [Boolean] true when the location is a colon-separated value
+      def from_nexus?(location)
+        !from_http?(location) && location.split(":").length > 2
+      end
+
+      # Returns true when the artifact is believed to be from an
+      # http source.
+      # 
+      # @param  location [String] the artifact_location
+      # 
+      # @return [Boolean] true when the location matches http or https.
+      def from_http?(location)
+        location =~ URI::regexp(['http', 'https'])
+      end
+
       # Returns the currently deployed version of an artifact given that artifacts
       # installation directory by reading what directory the 'current' symlink
       # points to.

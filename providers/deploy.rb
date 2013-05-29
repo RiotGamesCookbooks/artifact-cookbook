@@ -565,27 +565,23 @@ private
   # 
   # @return [void]
   def retrieve_from_http
-    remote_file cached_tar_path do
-      source new_resource.artifact_location
+    artifact_file cached_tar_path do
+      location new_resource.artifact_location
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
-      backup false
-
       action :create
     end
   end
 
-  # Defines a remote_file resource call to download an artifact from Nexus.
+  # Defines a artifact_file resource call to download an artifact from Nexus.
   # 
   # @return [void]
   def retrieve_from_nexus
-    remote_file cached_tar_path do
-      source Chef::Artifact.artifact_download_url_for(node, new_resource.artifact_location)
+    artifact_file cached_tar_path do
+      location artifact_location
       owner new_resource.owner
       group new_resource.group
-      checksum new_resource.artifact_checksum
-      backup false
       action :create
     end
   end

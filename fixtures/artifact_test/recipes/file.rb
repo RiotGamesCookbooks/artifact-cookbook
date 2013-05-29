@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: artifact_test
-# Recipe:: windows
+# Recipe:: file
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
 # 
@@ -19,14 +19,11 @@
 # limitations under the License.
 #
 
-user "artifact"
+group "artifact"
+user "artifacts"
 
-artifact_deploy "artifact_test" do
-  version           node[:artifact_test][:version]
-  artifact_location node[:artifact_test][:location]
-  artifact_checksum node[:artifact_test][:checksum]
-  deploy_to         node[:artifact_test][:deploy_to]
-  owner             "artifact"
-  group             "artifact"
-  action            :deploy
+artifact_file "/tmp/maven.tar.gz" do
+  location node[:artifact_test][:file_url]
+  owner "artifacts"
+  group "artifact"
 end
