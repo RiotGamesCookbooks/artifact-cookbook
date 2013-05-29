@@ -111,6 +111,43 @@ artifact_deploy "artifact_test" do
 end
 ```
 
+## artifact_file
+
+Downloads a file from a provided location and then verifies that the integrity of the file is intact. Artifact files from Nexus
+will check with the Nexus Server to verify the SHA1 of the downloaded file. Artifact files from an HTTP source will either use
+the provided SHA256 checksum to verify integrity or skip the check if no checksum is given.
+
+### Actions
+Action   | Description                   | Default
+-------  |-------------                  |---------
+create   | Download the artifact file    | Yes
+
+### Attributes
+Attribute              | Description                                                                          |Type     | Default
+---------              |-------------                                                                         |-----    |--------
+path                   | The path to download the artifact to                                                 | String  | name
+location               | The location to the artifact file. Either a nexus identifier or URL                  | String  |
+checksum               | The SHA256 checksum for verifying URL downloads. Not used when location is Nexus     | String  |
+owner                  | Owner of the downloaded file                                                         | String  |
+group                  | Group of the downloaded file                                                         | String  |
+download_retries       | The number of times to attempt to download the file if it fails its integrity check  | Integer | 1
+
+### Downloading files using artifact_file
+
+In its simplest state, the artifact_file resource is a wrapper for the remote_file resource. The key addition is retry logic and integrity checking
+for the downloaded files. Below is a brief description of the logic flow for the resource:
+
+* Download the file using remote_file resource.
+* Check the file's integrity
+  * Is it from the Nexus?
+    * Check the SHA1 of the downloaded file against Nexus Server's SHA1. Returns false if they are not equal.
+  * Is the checksum attribute defined for the resource?
+    * If defined - Check the SHA256 of the downloaded file against the checksum attribute. Returns false if they are not equal.
+    * If not defined - log a message and return true.
+
+When the logic returns true, the downloaded file is considered good and the resource will exit. When the logic above returns false, the downloaded file is considered
+corrupt and an attempt will be made to download the file again. The number of retries can be controlled with the `download_retries` attribute. 
+
 ### Documentation
 
 The RDocs for the deploy.rb provider can be found under the [Top Level Namespace](http://riotgames.github.com/artifact-cookbook/doc/top-level-namespace.html) page
