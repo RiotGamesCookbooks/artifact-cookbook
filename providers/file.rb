@@ -86,7 +86,6 @@ def remote_file_resource
     backup false
     action :nothing
   end
-  @remote_file_resource
 end
 
 # @return [Boolean]
