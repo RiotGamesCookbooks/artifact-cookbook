@@ -63,6 +63,8 @@ restart                    | A proc containing resources to be executed at the e
 after_deploy               | A proc containing resources to be executed after the deploy process ends             | Proc    |
 ssl_verify                 | Used to set whether or not communications with a Nexus server should be SSL verified | Boolean | true
 remove_top_level_directory | Deletes a top level directory from the extracted zip file                            | Boolean | false
+skip_manifest_check        | Skips the manifest check for idempotency when the version attribute is not changing  | Boolean | false 
+remove_on_force            | Removes the current version directory contents when force is set                     | Boolean | false
 
 ### Deploy Flow, the Manifest, and Procs
 

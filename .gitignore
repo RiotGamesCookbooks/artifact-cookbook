@@ -2,7 +2,7 @@
 Gemfile.lock
 Berksfile.lock
 fixtures/artifact_test*.tgz
-fixtures/databags/
+test/integration/data_bags/
 .kitchen/
 .kitchen.local.yml
 .vagrant

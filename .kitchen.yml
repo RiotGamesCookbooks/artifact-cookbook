@@ -22,3 +22,8 @@ suites:
       location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
 - name: file
   run_list: ["recipe[artifact_test::file]"]
+- name : nexus-file
+  run_list: ["recipe[artifact_test::file]"]
+  attributes:
+    artifact_test:
+      file_url: "com.test:mytest:1.0.0:tgz"
