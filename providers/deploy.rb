@@ -55,7 +55,7 @@ def load_current_resource
     end
 
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
-    @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'), @new_resource.ssl_verify)
+    @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'))
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   else
     @artifact_version = @new_resource.version
