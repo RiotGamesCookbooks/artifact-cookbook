@@ -2,6 +2,8 @@ class Chef
   module Artifact
     DATA_BAG = "artifact".freeze
     WILDCARD_DATABAG_ITEM = "_wildcard".freeze
+    DATA_BAG_NEXUS = 'nexus'.freeze
+    DATA_BAG_AWS = 'aws'.freeze
 
     module File
 
@@ -55,19 +57,28 @@ class Chef
     class << self
       include Chef::Artifact::File
 
-      # Loads the Nexus encrypted data bag item and returns credentials
+      # Loads the encrypted data bag item and returns credentials
       # for the environment or for a default key.
       #
       # @param  node [Chef::Node] the Chef node
+      # @param  source [String] the deployment source to load configuration for
       # 
       # @return [Chef::DataBagItem] the data bag item
-      def nexus_config_for(node)
+      def config_for(node, source)
         data_bag_item = if Chef::Config[:solo]
-          Chef::DataBagItem.load(DATA_BAG, WILDCARD_DATABAG_ITEM)
+          Chef::DataBagItem.load(DATA_BAG, WILDCARD_DATABAG_ITEM) rescue {}
         else
           encrypted_data_bag_for(node, DATA_BAG)
         end
-        data_bag_item
+
+        # support new format
+        return data_bag_item[source] if data_bag_item.has_key?(source)
+
+        # backwards compatible for old data bag formats using nexus
+        return data_bag_item if DATA_BAG_NEXUS == source
+
+        # no config found for source
+        return {}
       end
 
       # Uses the provided parameters to make a call to the data bag
@@ -89,7 +100,10 @@ class Chef
         if version.casecmp("latest") == 0
           require 'nexus_cli'
           require 'rexml/document'
-          config = nexus_config_for(node)
+          config = config_for(node, DATA_BAG_NEXUS)
+          if config.empty?
+            raise DataBagNotFound.new(DATA_BAG_NEXUS)
+          end
           remote = NexusCli::RemoteFactory.create(config, ssl_verify)
           REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//version"].text
         else
@@ -111,9 +125,52 @@ class Chef
       # information about that file. See NexusCli::ArtifactActions#pull_artifact.
       def retrieve_from_nexus(node, source, destination_dir, options = {})
         require 'nexus_cli'
-        config = nexus_config_for(node)
+        config = config_for(node, DATA_BAG_NEXUS)
+        if config.empty?
+          raise DataBagNotFound.new(DATA_BAG_NEXUS)
+        end
         remote = NexusCli::RemoteFactory.create(config, options[:ssl_verify])
         remote.pull_artifact(source, destination_dir)
+      end
+
+      # Downloads a file to disk from an Amazon S3 bucket
+      #
+      # @param  node [Chef::Node] the node
+      # @param  source_file [String] a s3 url that represents the artifact in the form: s3://<bucket>/<object-path>
+      # @param  destination_file [String] a path to download the artifact to
+      #
+      def retrieve_from_s3(node, source_file, destination_file)
+        begin
+          require 'aws-sdk'
+          config = config_for(node, DATA_BAG_AWS)
+          protocol, bucket_name, object_name = URI.split(source_file).compact
+          object_name = object_name[1..-1]
+          if config.empty?
+            Chef::Log.debug('No AWS Credentials provided, requires ENV variables or an IAM profile')
+            s3 = AWS::S3.new()
+          else
+            Chef::Log.debug("Using AWS Credentials from data_bag #{DATA_BAG}")
+            s3 = AWS::S3.new(
+                :access_key_id     => config['access_key_id'],
+                :secret_access_key => config['secret_access_key'])
+          end
+
+          raise S3BucketNotFoundError.new(bucket_name) unless s3.buckets.has_key?(bucket_name)
+          bucket = s3.buckets[bucket_name]
+
+          raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless bucket.objects.has_key?(object_name)
+          object = bucket.objects[object_name]
+          Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
+          ::File.open(destination_file, 'w') do |file|
+            object.read do |chunk|
+              file.write(chunk)
+            end
+            Chef::Log.debug("File #{destination_file} is #{file.size} bytes on disk")
+          end
+        rescue URI::InvalidURIError
+          Chef::Log.warn("Expected an S3 URL but found #{source_file}")
+          raise
+        end
       end
 
       # Generates a URL that hits the Nexus redirect endpoint which will
@@ -164,6 +221,16 @@ class Chef
       end
 
       # Returns true when the artifact is believed to be from an
+      # S3 bucket.
+      #
+      # @param  location [String] the artifact_location
+      #
+      # @return [Boolean] true when the location matches s3
+      def from_s3?(location)
+        location =~ URI::regexp('s3')
+      end
+
+      # Returns true when the artifact is believed to be from an
       # http source.
       # 
       # @param  location [String] the artifact_location
@@ -208,10 +275,10 @@ class Chef
           data_bag_item = encrypted_data_bag_item(data_bag, node.chef_environment)
           data_bag_item ||= encrypted_data_bag_item(data_bag, WILDCARD_DATABAG_ITEM)
           data_bag_item ||= encrypted_data_bag_item(data_bag, "nexus")
+          data_bag_item ||= {}
           @encrypted_data_bags[data_bag] = data_bag_item
           return data_bag_item
         end
-        raise EncryptedDataBagNotFound.new(data_bag)
       end
 
       # @return [Hash]

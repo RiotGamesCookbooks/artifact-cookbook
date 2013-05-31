@@ -57,6 +57,19 @@ def load_current_resource
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
     @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'), @new_resource.ssl_verify)
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
+  elsif from_s3?(@new_resource.artifact_location)
+    %W{libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
+      package nokogiri_requirement do
+        action :install
+      end.run_action(:install)
+    end
+
+    chef_gem "aws-sdk" do
+      version "1.11.0"
+    end
+
+    @artifact_version = @new_resource.version
+    @artifact_location = @new_resource.artifact_location
   else
     @artifact_version = @new_resource.version
     @artifact_location = @new_resource.artifact_location
@@ -523,6 +536,9 @@ private
       elsif from_nexus?(new_resource.artifact_location)
         Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
         retrieve_from_nexus
+      elsif from_s3?(new_resource.artifact_location)
+        Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from S3 using #{artifact_location}"
+        retrieve_from_s3
       elsif ::File.exist?(new_resource.artifact_location)
         Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
         retrieve_from_local
@@ -550,6 +566,16 @@ private
   # @return [Boolean] true when the location is a colon-separated value
   def from_nexus?(location)
     !from_http?(location) && location.split(":").length > 2
+  end
+
+  # Returns true when the artifact is believed to be from an
+  # S3 bucket.
+  #
+  # @param  location [String] the artifact_location
+  #
+  # @return [Boolean] true when the location matches s3
+  def from_s3?(location)
+    location =~ URI::regexp('s3')
   end
 
   # Convenience method for determining whether a String is "latest"
@@ -582,6 +608,19 @@ private
       location artifact_location
       owner new_resource.owner
       group new_resource.group
+      action :create
+    end
+  end
+
+  # Defines a artifact_file resource call to download an artifact from S3.
+  #
+  # @return [void]
+  def retrieve_from_s3
+    artifact_file cached_tar_path do
+      location new_resource.artifact_location
+      owner new_resource.owner
+      group new_resource.group
+      checksum new_resource.artifact_checksum
       action :create
     end
   end

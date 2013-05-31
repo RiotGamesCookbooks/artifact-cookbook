@@ -22,7 +22,7 @@ attr_reader :file_location
 
 def load_current_resource
   @from_nexus = Chef::Artifact.from_nexus?(new_resource.location)
-
+  @from_s3 = Chef::Artifact.from_s3?(new_resource.location)
   if from_nexus?
     chef_gem "nexus_cli" do
       version "3.0.0"
@@ -40,7 +40,13 @@ end
 action :create do
   retries = new_resource.download_retries
   begin
-    remote_file_resource.run_action(:create)
+    if from_s3?
+      unless ::File.exists?(new_resource.name) && checksum_valid?
+        Chef::Artifact.retrieve_from_s3(node, new_resource.location, new_resource.name)
+      end
+    else
+      remote_file_resource.run_action(:create)
+    end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
@@ -91,4 +97,9 @@ end
 # @return [Boolean]
 def from_nexus?
   @from_nexus
+end
+
+# @return [Boolean]
+def from_s3?
+  @from_s3
 end

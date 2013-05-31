@@ -116,7 +116,7 @@ end
 ## artifact_file
 
 Downloads a file from a provided location and then verifies that the integrity of the file is intact. Artifact files from Nexus
-will check with the Nexus Server to verify the SHA1 of the downloaded file. Artifact files from an HTTP source will either use
+will check with the Nexus Server to verify the SHA1 of the downloaded file. Artifact files from an HTTP or S3 source will either use
 the provided SHA256 checksum to verify integrity or skip the check if no checksum is given.
 
 ### Actions
@@ -128,7 +128,7 @@ create   | Download the artifact file    | Yes
 Attribute              | Description                                                                          |Type     | Default
 ---------              |-------------                                                                         |-----    |--------
 path                   | The path to download the artifact to                                                 | String  | name
-location               | The location to the artifact file. Either a nexus identifier or URL                  | String  |
+location               | The location to the artifact file. Either a nexus identifier, S3 path or URL        | String  |
 checksum               | The SHA256 checksum for verifying URL downloads. Not used when location is Nexus     | String  |
 owner                  | Owner of the downloaded file                                                         | String  |
 group                  | Group of the downloaded file                                                         | String  |
@@ -136,7 +136,7 @@ download_retries       | The number of times to attempt to download the file if 
 
 ### Downloading files using artifact_file
 
-In its simplest state, the artifact_file resource is a wrapper for the remote_file resource. The key addition is retry logic and integrity checking
+In its simplest state, the artifact_file resource is a wrapper for the remote_file resource for Nexus and URL locations. The key addition is retry logic and integrity checking
 for the downloaded files. Below is a brief description of the logic flow for the resource:
 
 * Download the file using remote_file resource.
@@ -148,7 +148,7 @@ for the downloaded files. Below is a brief description of the logic flow for the
       * If not defined - log a message and return true.
 
 When the logic returns true, the downloaded file is considered good and the resource will exit. When the logic above returns false, the downloaded file is considered
-corrupt and an attempt will be made to download the file again. The number of retries can be controlled with the `download_retries` attribute. 
+corrupt and an attempt will be made to download the file again. The number of retries can be controlled with the `download_retries` attribute.
 
 ### Documentation
 
@@ -161,13 +161,13 @@ In order to deploy an artifact from a Nexus repository, you must first create
 an [encrypted data bag](http://wiki.opscode.com/display/chef/Encrypted+Data+Bags) that contains
 the credentials for your Nexus repository.
 
-    knife data bag create artifact nexus -c <your chef config> --secret-file=<your secret file>
+    knife data bag create artifact _wildcard -c <your chef config> --secret-file=<your secret file>
 
 Your data bag should look like the following:
 
     {
-      "id": "nexus",
-      "your_chef_environment": {
+      "id": "_wildcard",
+      "nexus": {
         "username": "nexus_user",
         "password": "nexus_user_password",
         "url": "http://nexus.yourcompany.com:8081/nexus/",
@@ -178,7 +178,72 @@ Your data bag should look like the following:
 After your encrypted data bag is setup you can use Maven identifiers
 for your artifact_location. A Maven identifier is shown as a colon-separated string
 that includes three elemens - groupId:artifactId:extension - ex. "com.my.artifact:my-artifact:tgz". 
-If many environments share the same configuration, you can use "*" as a wildcard environment name.
+If many environments share the same configuration, you can provide environment specific configuration in
+separate data_bag items:
+
+    knife data bag create artifact production -c <your chef config> --secret-file=<your secret file>
+
+    {
+      "id": "production",
+      "nexus": {
+        "username": "nexus_production_user",
+        "password": "nexus_production_user_password",
+        "url": "http://nexus.yourcompany.com:8081/nexus/",
+        "repository": "your_repository"
+      }
+    }
+
+    knife data bag create artifact development -c <your chef config> --secret-file=<your secret file>
+
+    {
+      "id": "development",
+      "nexus": {
+        "username": "nexus_dev_user",
+        "password": "nexus_dev_user_password",
+        "url": "http://nexus-dev.yourcompany.com:8081/nexus/",
+        "repository": "your_repository"
+      }
+    }
+
+#### S3 Usage
+
+S3 can be used as a source of an archive.  The location path must be in the form ```s3://bucket-name/path/to/archive.tar.gz```.  You can provide AWS credentials in the data_bag,
+or if you are running on EC2 and are using IAM Instance Roles - you may omit the credentials and use the Instance Role. Alternatively, if the credentials are available on the
+environment they will be used from there (more information on the Environment variable keys an be found <http://docs.aws.amazon.com/AWSSdkDocsRuby/latest/DeveloperGuide/ruby-dg-roles.html>).
+
+This is example IAM policy to get an artifact from S3. Note that this policy will limit permissions to just the files contained under the ```deploys/``` path.
+If you wish to keep them in the root of your bucket, just omit the ```deploys/``` portion and put ```<your-s3-bucket>/*```:
+
+    {
+      "Statement": [
+        {
+          "Sid": "Stmt1357328135477",
+          "Action": [
+            "s3:GetObject",
+            "s3:ListBucket"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:s3:::<your-s3-bucket>/deploys/*",
+            "arn:aws:s3:::<your-s3-bucket>"
+          ]
+        }
+      ]
+    }
+
+If you wish to provide your AWS credentials in a data_bag, the format is:
+
+Your data bag should look like the following:
+
+    {
+      "id": "_wildcard",
+      "aws": {
+        "access_key_id": "my_access_key",
+        "secret_access_key": "my_secret_access_key"
+      }
+    }
+
+Your data_bag can contain both ```nexus``` and ```aws``` configuration.
 
 ### Examples
 
@@ -288,6 +353,19 @@ If many environments share the same configuration, you can use "*" as a wildcard
       }
     end
 
+##### Deploying an artifact from Amazon S3
+
+    artifact_deploy "my-artifact" do
+      version           "1.0.0"
+      artifact_location "s3://my-website-deployments/deploys/my-artifact-1.0.0.tgz"
+      deploy_to         "/srv/my-artifact"
+      owner             node[:artifact_owner]
+      group             node[:artifact_group]
+      symlinks({
+        "log" => "log"
+      })
+    end
+
 ##### Configuring an artifact_deploy that may need to change over many Chef runs
 
     artifact_deploy "my-artifact" do
@@ -324,6 +402,16 @@ If many environments share the same configuration, you can use "*" as a wildcard
   configuring the `force` attribute to a node attribute, will allow you to change some of the more finer grained aspects of the
   resource. For example, when force is true, you can also change the value of owner and group to remap the deployed artifact to
   a new permissions scheme.
+
+##### Using artifact_file to download a file from an S3 bucket
+
+    artifact_file "/tmp/my-artifact.tgz" do
+      location "s3://my-website-deployments/deploys/my-artifact-1.0.0.tgz"
+      owner "me"
+      group "mes"
+      checksum "fcb188ed37d41ff2cbf1a52d3a11bfde666e036b5c7ada1496dc1d53dd6ed5dd"
+      action :create
+    end
 
 # Testing
 
