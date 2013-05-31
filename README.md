@@ -38,7 +38,7 @@ pre_seed | Pre-seed the artifact package |
 Attribute                  | Description                                                                          |Type     | Default
 ---------                  |-------------                                                                         |-----    |--------
 artifact_name              | Name of the artifact package to deploy                                               | String  | name
-artifact_location          | URL, local path, or Maven identifier of the artifact package to download             | String  |
+artifact_location          | URL, S3 path, local path, or Maven identifier of the artifact package to download    | String  |
 artifact_checksum          | The SHA256 checksum of the artifact package that is being downloaded                 | String  |
 deploy_to                  | Deploy directory where releases are stored and linked                                | String  |
 version                    | Version of the artifact being deployed                                               | String  |
