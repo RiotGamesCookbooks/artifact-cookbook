@@ -201,11 +201,11 @@ describe Chef::Artifact do
         stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
         stub_objects_list.stub(:[]).with('my-file.tar.gz').and_return(mock_s3_object)
 
-        mock_s3_client.should_receive(:buckets).twice.and_return(stub_buckets_list)
-        mock_s3_bucket.should_receive(:objects).twice.and_return(stub_objects_list)
+        mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
+        mock_s3_bucket.should_receive(:objects).and_return(stub_objects_list)
+        mock_s3_bucket.should_receive(:exists?).and_return(true)
         mock_s3_object.should_receive(:read).and_yield(mock_file_contents)
-        stub_buckets_list.should_receive(:has_key?).with('my-bucket').and_return(true)
-        stub_objects_list.should_receive(:has_key?).with('my-file.tar.gz').and_return(true)
+        mock_s3_object.should_receive(:exists?).and_return(true)
         mock_output_file.should_receive(:size).and_return(11241)
         mock_output_file.should_receive(:write).with(expected_file_contents)
 
@@ -226,11 +226,11 @@ describe Chef::Artifact do
         stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
         stub_objects_list.stub(:[]).with('my-file.tar.gz').and_return(mock_s3_object)
 
-        mock_s3_client.should_receive(:buckets).twice.and_return(stub_buckets_list)
-        mock_s3_bucket.should_receive(:objects).twice.and_return(stub_objects_list)
+        mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
+        mock_s3_bucket.should_receive(:objects).and_return(stub_objects_list)
+        mock_s3_bucket.should_receive(:exists?).and_return(true)
         mock_s3_object.should_receive(:read).and_yield(mock_file_contents)
-        stub_buckets_list.should_receive(:has_key?).with('my-bucket').and_return(true)
-        stub_objects_list.should_receive(:has_key?).with('my-file.tar.gz').and_return(true)
+        mock_s3_object.should_receive(:exists?).and_return(true)
         mock_output_file.should_receive(:size).and_return(11241)
         mock_output_file.should_receive(:write).with(expected_file_contents)
 
@@ -248,8 +248,10 @@ describe Chef::Artifact do
       end
 
       it "throws an S3BucketNotFoundError" do
+        stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
+
         mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
-        stub_buckets_list.should_receive(:has_key?).with('my-bucket').and_return(false)
+        mock_s3_bucket.should_receive(:exists?).and_return(false)
 
         expect{ retrieve_from_s3 }.to raise_error(Chef::Artifact::S3BucketNotFoundError)
       end
@@ -266,11 +268,12 @@ describe Chef::Artifact do
 
       it "throws an S3ArtifactNotFoundError" do
         stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
+        stub_objects_list.stub(:[]).with('my-file.tar.gz').and_return(mock_s3_object)
 
-        mock_s3_client.should_receive(:buckets).twice.and_return(stub_buckets_list)
+        mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
         mock_s3_bucket.should_receive(:objects).and_return(stub_objects_list)
-        stub_buckets_list.should_receive(:has_key?).with('my-bucket').and_return(true)
-        stub_objects_list.should_receive(:has_key?).with('my-file.tar.gz').and_return(false)
+        mock_s3_bucket.should_receive(:exists?).and_return(true)
+        mock_s3_object.should_receive(:exists?).and_return(false)
 
         expect{ retrieve_from_s3 }.to raise_error(Chef::Artifact::S3ArtifactNotFoundError)
       end

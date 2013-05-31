@@ -155,11 +155,12 @@ class Chef
                 :secret_access_key => config['secret_access_key'])
           end
 
-          raise S3BucketNotFoundError.new(bucket_name) unless s3.buckets.has_key?(bucket_name)
           bucket = s3.buckets[bucket_name]
+          raise S3BucketNotFoundError.new(bucket_name) unless bucket.exists?
 
-          raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless bucket.objects.has_key?(object_name)
           object = bucket.objects[object_name]
+          raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless object.exists?
+
           Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
           ::File.open(destination_file, 'w') do |file|
             object.read do |chunk|
