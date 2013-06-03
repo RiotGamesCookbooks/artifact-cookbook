@@ -59,9 +59,9 @@ def load_current_resource
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   elsif from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
-      %W{libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
+      %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
         package nokogiri_requirement do
-          action :install
+          action :nothing
         end.run_action(:install)
       end
     end

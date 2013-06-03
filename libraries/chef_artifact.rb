@@ -64,7 +64,7 @@ class Chef
       # @param  source [String] the deployment source to load configuration for
       # 
       # @return [Chef::DataBagItem] the data bag item
-      def config_for(node, source)
+      def data_bag_config_for(node, source)
         data_bag_item = if Chef::Config[:solo]
           Chef::DataBagItem.load(DATA_BAG, WILDCARD_DATABAG_ITEM) rescue {}
         else
@@ -78,7 +78,7 @@ class Chef
         return data_bag_item if DATA_BAG_NEXUS == source
 
         # no config found for source
-        return {}
+        {}
       end
 
       # Uses the provided parameters to make a call to the data bag
@@ -100,7 +100,7 @@ class Chef
         if version.casecmp("latest") == 0
           require 'nexus_cli'
           require 'rexml/document'
-          config = config_for(node, DATA_BAG_NEXUS)
+          config = data_bag_config_for(node, DATA_BAG_NEXUS)
           if config.empty?
             raise DataBagNotFound.new(DATA_BAG_NEXUS)
           end
@@ -125,7 +125,7 @@ class Chef
       # information about that file. See NexusCli::ArtifactActions#pull_artifact.
       def retrieve_from_nexus(node, source, destination_dir, options = {})
         require 'nexus_cli'
-        config = config_for(node, DATA_BAG_NEXUS)
+        config = data_bag_config_for(node, DATA_BAG_NEXUS)
         if config.empty?
           raise DataBagNotFound.new(DATA_BAG_NEXUS)
         end
@@ -142,7 +142,7 @@ class Chef
       def retrieve_from_s3(node, source_file, destination_file)
         begin
           require 'aws-sdk'
-          config = config_for(node, DATA_BAG_AWS)
+          config = data_bag_config_for(node, DATA_BAG_AWS)
           protocol, bucket_name, object_name = URI.split(source_file).compact
           object_name = object_name[1..-1]
           if config.empty?

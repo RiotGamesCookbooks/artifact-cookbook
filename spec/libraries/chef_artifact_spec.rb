@@ -2,9 +2,9 @@ require 'spec_helper'
 
 describe Chef::Artifact do
   let(:node) { double('node', chef_environment: "default") }
-  describe ":config_for" do
-    subject { config_for }
-    let(:config_for) { described_class.config_for(node, source) }
+  describe ":data_bag_config_for" do
+    subject { data_bag_config_for }
+    let(:data_bag_config_for) { described_class.data_bag_config_for(node, source) }
     let(:source) { Chef::Artifact::DATA_BAG_NEXUS }
 
     context "when we are using chef-solo" do
@@ -16,7 +16,7 @@ describe Chef::Artifact do
       end
 
       it "loads a normal data bag" do
-        expect(config_for).to eq(data_bag_item)
+        expect(data_bag_config_for).to eq(data_bag_item)
       end
     end
 
@@ -28,7 +28,7 @@ describe Chef::Artifact do
       end
 
       it "loads an encrypted data bag" do
-        expect(config_for.symbolize_keys).to eq(data_bag_item)
+        expect(data_bag_config_for.symbolize_keys).to eq(data_bag_item)
       end      
     end
 
@@ -41,7 +41,7 @@ describe Chef::Artifact do
       end
 
       it "loads a normal data bag" do
-        expect(config_for).to eq(data_bag_item)
+        expect(data_bag_config_for).to eq(data_bag_item)
       end
     end
 
@@ -54,7 +54,7 @@ describe Chef::Artifact do
       end
 
       it "loads a normal data bag" do
-        expect(config_for).to eq(data_bag_item)
+        expect(data_bag_config_for).to eq(data_bag_item)
       end
     end
 
@@ -67,7 +67,7 @@ describe Chef::Artifact do
       end
 
       it "loads a normal data bag" do
-        expect(config_for).to eq(nexus_data_bag_item)
+        expect(data_bag_config_for).to eq(nexus_data_bag_item)
       end
     end
 
@@ -84,7 +84,7 @@ describe Chef::Artifact do
       end
 
       it "loads a normal data bag" do
-        expect(config_for).to eq(aws_data_bag_item)
+        expect(data_bag_config_for).to eq(aws_data_bag_item)
       end
     end
 
@@ -98,7 +98,7 @@ describe Chef::Artifact do
       end
 
       it "loads a normal data bag" do
-        expect(config_for).to eq(aws_data_bag_item)
+        expect(data_bag_config_for).to eq(aws_data_bag_item)
       end
     end
   end
