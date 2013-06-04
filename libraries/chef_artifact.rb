@@ -97,7 +97,7 @@ class Chef
       # @return [String] the version number that latest resolves to or the passed in value
       def get_actual_version(node, artifact_location, ssl_verify=true)
         version = artifact_location.split(':')[2]
-        if version.casecmp("latest") == 0
+        if latest?(version)
           require 'nexus_cli'
           require 'rexml/document'
           config = data_bag_config_for(node, DATA_BAG_NEXUS)
@@ -228,7 +228,7 @@ class Chef
       #
       # @return [Boolean] true when the location matches s3
       def from_s3?(location)
-        location =~ URI::regexp('s3')
+        location_of_type(location, 's3')
       end
 
       # Returns true when the artifact is believed to be from an
@@ -238,7 +238,26 @@ class Chef
       # 
       # @return [Boolean] true when the location matches http or https.
       def from_http?(location)
-        location =~ URI::regexp(['http', 'https'])
+        location_of_type(location, %w(http https))
+      end
+
+      # Returns true when the location URI scheme matches the type
+      #
+      # @param  location [String] the location URI to check
+      # @param  uri_type [Array] list of URI types to check
+      #
+      # @return [Boolean] true when the location matches the given URI type
+      def location_of_type(location, uri_type)
+        not (location =~ URI::regexp(uri_type)).nil?
+      end
+
+      # Convenience method for determining whether a String is "latest"
+      #
+      # @param  version [String] the version of the configured artifact to check
+      #
+      # @return [Boolean] true when version matches (case-insensitive) "latest"
+      def latest?(version)
+        version.casecmp("latest") == 0
       end
 
       # Returns the currently deployed version of an artifact given that artifacts

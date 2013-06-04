@@ -21,7 +21,6 @@
 #
 require 'digest'
 require 'pathname'
-require 'uri'
 require 'yaml'
 
 attr_reader :release_path
@@ -36,7 +35,7 @@ attr_reader :artifact_location
 attr_reader :artifact_version
 
 def load_current_resource
-  if latest?(@new_resource.version) && from_http?(@new_resource.artifact_location)
+  if Chef::Artifact.latest?(@new_resource.version) && Chef::Artifact.from_http?(@new_resource.artifact_location)
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
   end
 
@@ -49,7 +48,7 @@ def load_current_resource
     version "3.2.11"
   end
 
-  if from_nexus?(@new_resource.artifact_location)
+  if Chef::Artifact.from_nexus?(@new_resource.artifact_location)
     chef_gem "nexus_cli" do
       version "3.0.0"
     end
@@ -240,7 +239,7 @@ end
 
 # Returns the filename of the artifact being installed when the LWRP
 # is called. Depending on how the resource is called in a recipe, the
-# value returned by this method will change. If from_nexus?, return the
+# value returned by this method will change. If Chef::Artifact.from_nexus?, return the
 # concatination of "artifact_id-version.extension" otherwise return the
 # basename of where the artifact is located.
 # 
@@ -252,7 +251,7 @@ end
 # 
 # @return [String] the artifacts filename
 def artifact_filename
-  if from_nexus?(new_resource.artifact_location)    
+  if Chef::Artifact.from_nexus?(new_resource.artifact_location)
     group_id, artifact_id, version, extension = artifact_location.split(":")
     unless extension
       extension = "jar"
@@ -532,13 +531,13 @@ private
   # @return [void]
   def retrieve_artifact!
     recipe_eval do
-      if from_http?(new_resource.artifact_location)
+      if Chef::Artifact.from_http?(new_resource.artifact_location)
         Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from #{artifact_location}"
         retrieve_from_http
-      elsif from_nexus?(new_resource.artifact_location)
+      elsif Chef::Artifact.from_nexus?(new_resource.artifact_location)
         Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from Nexus using #{artifact_location}"
         retrieve_from_nexus
-      elsif from_s3?(new_resource.artifact_location)
+      elsif Chef::Artifact.from_s3?(new_resource.artifact_location)
         Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact from S3 using #{artifact_location}"
         retrieve_from_s3
       elsif ::File.exist?(new_resource.artifact_location)
@@ -548,45 +547,6 @@ private
         Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
       end
     end
-  end
-
-  # Returns true when the artifact is believed to be from an
-  # http source.
-  # 
-  # @param  location [String] the artifact_location
-  # 
-  # @return [Boolean] true when the location matches http or https.
-  def from_http?(location)
-    location =~ URI::regexp(['http', 'https'])
-  end
-
-  # Returns true when the artifact is believed to be from a
-  # Nexus source.
-  #
-  # @param  location [String] the artifact_location
-  # 
-  # @return [Boolean] true when the location is a colon-separated value
-  def from_nexus?(location)
-    !from_http?(location) && location.split(":").length > 2
-  end
-
-  # Returns true when the artifact is believed to be from an
-  # S3 bucket.
-  #
-  # @param  location [String] the artifact_location
-  #
-  # @return [Boolean] true when the location matches s3
-  def from_s3?(location)
-    location =~ URI::regexp('s3')
-  end
-
-  # Convenience method for determining whether a String is "latest"
-  # 
-  # @param  version [String] the version of the configured artifact to check
-  # 
-  # @return [Boolean] true when version matches (case-insensitive) "latest"
-  def latest?(version)
-    version.casecmp("latest") == 0
   end
 
   # Defines a resource call for downloading the remote artifact.

@@ -174,6 +174,34 @@ describe Chef::Artifact do
     end
   end
 
+  describe ":from_http?" do
+    specify { described_class.from_http?('s3://my.bucket/a/valid/file.tar.gz').should eq(false) }
+    specify { described_class.from_http?('http://files3.something.com').should eq(true) }
+    specify { described_class.from_http?('https://artifacts.location.riotgames.com/pvpnet-1.0.0.tar.gz').should eq(true) }
+    specify { described_class.from_http?('https://s3-us-west-2.amazonaws.com/my.bucket/a/valid/file.tar.gz').should eq(true) }
+    specify { described_class.from_http?('ftp://someserver.example.com/file.tgz').should eq(false) }
+  end
+
+  describe ":from_nexus?" do
+    specify { described_class.from_nexus?('s3://my.bucket/a/valid/file.tar.gz').should eq(false) }
+    specify { described_class.from_nexus?('http://files3.something.com').should eq(false) }
+    specify { described_class.from_nexus?('https://s3-us-west-2.amazonaws.com/my.bucket/a/valid/file.tar.gz').should eq(false) }
+    specify { described_class.from_nexus?('ftp://someserver.example.com/file.tgz').should eq(false) }
+    specify { described_class.from_nexus?('com.foo:my-artifact:tgz').should eq(true) }
+  end
+
+  describe ":from_s3?" do
+    specify { described_class.from_s3?('s3://my.bucket/a/valid/file.tar.gz').should eq(true) }
+    specify { described_class.from_s3?('http://files3.something.com').should eq(false) }
+    specify { described_class.from_s3?('https://s3-us-west-2.amazonaws.com/my.bucket/a/valid/file.tar.gz').should eq(false) }
+  end
+
+  describe ":latest?" do
+    specify { described_class.latest?('latest').should eq(true) }
+    specify { described_class.latest?('LAtest').should eq(true) }
+    specify { described_class.latest?('3.0.1').should eq(false) }
+  end
+
   describe ":retrieve_from_s3" do
     require 'aws-sdk'
 
