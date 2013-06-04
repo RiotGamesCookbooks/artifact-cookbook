@@ -56,7 +56,7 @@ def load_current_resource
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
     @artifact_version  = Chef::Artifact.get_actual_version(node, [group_id, artifact_id, @new_resource.version, extension].join(':'), @new_resource.ssl_verify)
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
-  elsif from_s3?(@new_resource.artifact_location)
+  elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
       %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
         package nokogiri_requirement do

@@ -128,7 +128,7 @@ create   | Download the artifact file    | Yes
 Attribute              | Description                                                                          |Type     | Default
 ---------              |-------------                                                                         |-----    |--------
 path                   | The path to download the artifact to                                                 | String  | name
-location               | The location to the artifact file. Either a nexus identifier, S3 path or URL        | String  |
+location               | The location to the artifact file. Either a nexus identifier, S3 path or URL         | String  |
 checksum               | The SHA256 checksum for verifying URL downloads. Not used when location is Nexus     | String  |
 owner                  | Owner of the downloaded file                                                         | String  |
 group                  | Group of the downloaded file                                                         | String  |
