@@ -1,3 +1,7 @@
+## v1.7.0
+
+* [#71] Added support for using S3 as an artifact deployment source.
+
 ## v1.6.0
 
 * [#70] Added a new LWRP, artifact\_file which wraps remote_file with some retry logic for corrupt downloads. Also uses the configured Nexus server to check Nexus downloads.
