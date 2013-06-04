@@ -2,7 +2,7 @@ class Chef
   module Artifact
     class ArtifactError < StandardError; end
 
-    class EncryptedDataBagNotFound < ArtifactError
+    class DataBagNotFound < ArtifactError
       attr_reader :data_bag_key
 
       def initialize(data_bag_key)
@@ -10,7 +10,7 @@ class Chef
       end
 
       def message
-        "[artifact] Unable to locate the Artifact encrypted data bag '#{DATA_BAG}' or data bag item '#{data_bag_key}' for your environment."
+        "[artifact] Unable to locate the Artifact data bag '#{DATA_BAG}' or data bag item '#{data_bag_key}' for your environment."
       end
     end
 
@@ -37,6 +37,32 @@ class Chef
     class ArtifactChecksumError < ArtifactError
       def message
         "[artifact] Downloaded file checksum does not match the provided checksum. Your download may be corrupted or your checksum may not be correct."
+      end
+    end
+
+    class S3BucketNotFoundError < ArtifactError
+      attr_reader :bucket_name
+
+      def initialize(bucket_name)
+        @bucket_name = bucket_name
+      end
+
+      def message
+        "[artifact] Unable to locate the S3 bucket: #{bucket_name}"
+      end
+    end
+
+    class S3ArtifactNotFoundError < ArtifactError
+      attr_reader :bucket_name
+      attr_reader :object_path
+
+      def initialize(bucket_name, object_path)
+        @bucket_name = bucket_name
+        @object_path = object_path
+      end
+
+      def message
+        "[artifact] Unable to locate the artifact on S3 at the path #{bucket_name}/#{object_path}"
       end
     end
   end
