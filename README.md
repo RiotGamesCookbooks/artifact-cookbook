@@ -233,8 +233,6 @@ If you wish to keep them in the root of your bucket, just omit the ```deploys/``
 
 If you wish to provide your AWS credentials in a data_bag, the format is:
 
-Your data bag should look like the following:
-
     {
       "id": "_wildcard",
       "aws": {
