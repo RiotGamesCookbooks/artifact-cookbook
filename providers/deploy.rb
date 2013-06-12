@@ -155,7 +155,7 @@ def extract_artifact!
     case ::File.extname(cached_tar_path)
     when /gz|tgz|tar|bz2|tbz/
       execute "extract_artifact!" do
-        command "tar xf #{cached_tar_path} -C #{release_path}"
+        command "tar xf #{cached_tar_path} -C #{release_path} --owner=#{new_resource.owner} --group=#{new_resource.group}"
         retries 2
       end
     when /zip|war|jar/
