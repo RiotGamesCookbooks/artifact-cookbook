@@ -160,6 +160,7 @@ def extract_artifact!
       end
       execute "chown the extracted files" do
         command "chown -R #{new_resource.owner}:#{new_resource.group} #{release_path}"
+        not_if {  Chef::Artifact.windows? }
       end
     when /zip|war|jar/
       if Chef::Artifact.windows?
