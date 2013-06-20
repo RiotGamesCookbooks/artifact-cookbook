@@ -40,7 +40,9 @@ end
 action :create do
   retries = new_resource.download_retries
   begin
-    remote_file_resource.run_action(:create)
+    unless ::File.exists?(new_resource.name) && checksum_valid?
+      remote_file_resource.run_action(:create)
+    end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
@@ -66,7 +68,7 @@ def checksum_valid?
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
     else
-      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, not verifying against downloaded file."
+      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, assuming checksum is valid."
       true
     end
   end
