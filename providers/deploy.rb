@@ -156,9 +156,11 @@ def extract_artifact!
     when /gz|tgz|tar|bz2|tbz/
       execute "extract_artifact!" do
         command "tar xf #{cached_tar_path} -C #{release_path}"
-        user new_resource.owner
-        group new_resource.group
         retries 2
+      end
+      execute "chown the extracted files" do
+        command "chown -R #{new_resource.owner}:#{new_resource.group} #{release_path}"
+        not_if {  Chef::Artifact.windows? }
       end
     when /zip|war|jar/
       if Chef::Artifact.windows?
