@@ -7,3 +7,4 @@ fixtures/databags/
 .kitchen.local.yml
 .vagrant
 .DS_Store
+test/integration/data_bags/
