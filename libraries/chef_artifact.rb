@@ -187,7 +187,7 @@ class Chef
       # @return [String] a URL that can be used to retrieve an artifact
       def artifact_download_url_for(node, source)
         # TODO: Move this method into the nexus-cli
-        config = nexus_config_for(node)
+        config = data_bag_config_for(node)
         group_id, artifact_id, version, extension = source.split(':')
         query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}"
         uri_for_url = URI(config['url'])
@@ -206,7 +206,7 @@ class Chef
       def get_artifact_sha(node, artifact_location, ssl_verify=true)
         require 'nexus_cli'
         require 'rexml/document'
-        config = nexus_config_for(node)
+        config = data_bag_config_for(node)
         remote = NexusCli::RemoteFactory.create(config, ssl_verify)
         REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
       end
