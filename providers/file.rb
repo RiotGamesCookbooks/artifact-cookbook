@@ -43,7 +43,9 @@ action :create do
         Chef::Artifact.retrieve_from_s3(node, new_resource.location, new_resource.name)
       end
     else
-      remote_file_resource.run_action(:create)
+      unless ::File.exists?(new_resource.name) && checksum_valid?
+        remote_file_resource.run_action(:create)
+      end
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
   rescue Chef::Artifact::ArtifactChecksumError => e
@@ -70,7 +72,7 @@ def checksum_valid?
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
     else
-      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, not verifying against downloaded file."
+      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, assuming checksum is valid."
       true
     end
   end

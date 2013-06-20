@@ -27,3 +27,16 @@ artifact_file "/tmp/maven.tar.gz" do
   owner "artifacts"
   group "artifact"
 end
+
+ruby_block "write a temporary file with the mtime" do
+  block do
+    ::File.open("/tmp/artifact_mtime", "w") { |file| file.puts ::File.mtime("/tmp/maven.tar.gz") }
+  end
+  not_if { ::File.exists?("/tmp/artifact_mtime") }
+end
+
+artifact_file "/tmp/maven.tar.gz" do
+  location node[:artifact_test][:file_url]
+  owner "artifacts"
+  group "artifact"
+end
