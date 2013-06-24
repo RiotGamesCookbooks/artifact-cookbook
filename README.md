@@ -70,7 +70,7 @@ remove_on_force            | Removes the current version directory contents when
 
 The deploy flow is outlined in the Artifact Deploy flow chart below. 
 
-![Artifact Deploy](http://riotgames.github.com/artifact-cookbook/images/ArtifactDeployFlow.png)
+![Artifact Deploy](https://raw.github.com/RiotGames/artifact-cookbook/gh-pages/images/ArtifactDeployFlow.png)
 
 For a more detailed flow of what happens when we check with `deploy?`, see the [Manifest Differences Flow chart.](http://riotgames.github.com/artifact-cookbook/images/ManifestDifferencesFlow.png)
 
