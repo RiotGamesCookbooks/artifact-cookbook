@@ -64,9 +64,9 @@ def load_current_resource
       when 'rhel'
         nokogiri_requirements = %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}
       else
-        Chef.fatal('Unsupported platform, unknown requirements for nokogiri!')
+        Chef::Application.fatal!('Unsupported platform, unknown requirements for nokogiri!')
       end
-      
+
       nokogiri_requirements.each do |nokogiri_requirement|
         package nokogiri_requirement do
           action :nothing
