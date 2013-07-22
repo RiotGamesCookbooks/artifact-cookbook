@@ -1,3 +1,7 @@
+## v1.7.1
+
+* [#80] Fixes support for S3 and Ubuntu. Thanks to @ephess.
+
 ## v1.7.0
 
 * [#71] Added support for using S3 as an artifact deployment source.
