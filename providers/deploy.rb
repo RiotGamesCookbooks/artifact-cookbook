@@ -58,7 +58,16 @@ def load_current_resource
     @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
   elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
-      %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}.each do |nokogiri_requirement|
+      case node['platform_family']
+      when 'debian'
+        nokogiri_requirements = %W{gcc make libxml2 libxslt1.1 libxml2-dev libxslt1-dev}
+      when 'rhel'
+        nokogiri_requirements = %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}
+      else
+        Chef::Log.warn "Watch out, you might not be able to install the nokogiri gem!"
+      end
+
+      nokogiri_requirements.each do |nokogiri_requirement|
         package nokogiri_requirement do
           action :nothing
         end.run_action(:install)

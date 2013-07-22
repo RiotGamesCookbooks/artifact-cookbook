@@ -8,6 +8,7 @@ version          "1.7.0"
 supports "centos"
 supports "redhat"
 supports "fedora"
+supports "ubuntu"
 supports "windows", ">= 6.0"
 
 depends "windows", "~> 1.8.0"
