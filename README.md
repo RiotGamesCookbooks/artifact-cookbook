@@ -167,12 +167,10 @@ Your data bag should look like the following:
 
     {
       "id": "_wildcard",
-      "nexus": {
-        "username": "nexus_user",
-        "password": "nexus_user_password",
-        "url": "http://nexus.yourcompany.com:8081/nexus/",
-        "repository": "your_repository"
-      }
+      "username": "nexus_user",
+      "password": "nexus_user_password",
+      "url": "http://nexus.yourcompany.com:8081/nexus/",
+      "repository": "your_repository"
     }
 
 After your encrypted data bag is setup you can use Maven identifiers
