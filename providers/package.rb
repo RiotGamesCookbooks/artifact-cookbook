@@ -20,15 +20,17 @@
 #
 
 action :create do
-  tempfile = ::File.join(Chef::Config[:file_cache_path],
-                         "artifact_packages",
-                         new_resource.name)
+  sha = Digest::SHA1.hexdigest new_resource.location
 
-  directory ::File.dirname(tempfile) do
+  pkg = ::File.join(Chef::Config[:file_cache_path],
+                         "artifact_packages",
+                         "#{new_resource.name}-#{sha}")
+
+  directory ::File.dirname(pkg) do
     action :create
   end
 
-  artifact_file tempfile do
+  artifact_file pkg do
     location new_resource.location
     checksum new_resource.checksum if new_resource.checksum
     owner new_resource.owner
@@ -37,11 +39,7 @@ action :create do
   end
 
   package new_resource.name do
-    source tempfile
+    source pkg
     action :install
-  end
-
-  file tempfile do
-    action :delete
   end
 end
