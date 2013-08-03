@@ -48,7 +48,7 @@ action :create do
           remote_file_resource.run_action(:create)
         rescue Net::HTTPServerException => e
           if e.to_s =~ /401/
-            msg = "The artifact server returned 401, Unauthorized when attempting to retrieve this artifact. Confirm that your credentials are configured correctly."
+            msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
 
             raise Chef::Artifact::ArtifactDownloadError.new(msg)
           else
