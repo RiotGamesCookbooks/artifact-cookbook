@@ -21,13 +21,15 @@
 
 action :create do
   sha = Digest::SHA1.hexdigest new_resource.location
+  ext = new_resource.location.match(/[:\.]([0-9a-z]+)$/i)[1]
 
   pkg = ::File.join(Chef::Config[:file_cache_path],
                          "artifact_packages",
-                         "#{new_resource.name}-#{sha}")
+                         "#{new_resource.name}-#{sha}.#{ext}")
 
   directory ::File.dirname(pkg) do
     action :create
+    recursive true
   end
 
   artifact_file pkg do
