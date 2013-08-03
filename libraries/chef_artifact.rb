@@ -192,7 +192,15 @@ class Chef
         query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}"
         uri_for_url = URI(config['url'])
         builder = uri_for_url.scheme =~ /https/ ? URI::HTTPS : URI::HTTP
-        builder.build(host: uri_for_url.host, port: uri_for_url.port, path: '/nexus/service/local/artifact/maven/redirect', query: query_string).to_s
+        builder_options = {
+          host: uri_for_url.host, 
+          port: uri_for_url.port, 
+          path: '/nexus/service/local/artifact/maven/redirect', 
+          query: query_string
+        }
+        builder_options[:userinfo] = "#{config['username']}:#{config['password']}" if node[:artifact][:nexus][:basic_auth_required]
+
+        builder.build(builder_options).to_s
       end
 
       # Makes a call to Nexus and parses the returned XML to return

@@ -44,7 +44,22 @@ action :create do
       end
     else
       unless ::File.exists?(new_resource.name) && checksum_valid?
-        remote_file_resource.run_action(:create)
+        begin
+          remote_file_resource.run_action(:create)
+        rescue Net::HTTPServerException => e
+          if e.to_s =~ /401/ and Chef::Artifact.from_nexus?(new_resource.location)
+            msg = "The artifact server returned 401, Unauthorized when attempting to retrieve this artifact."
+            if not node[:artifact][:nexus][:basic_auth_required]
+              msg += " Set the attribute artifact.anonymous_access_enabled to false if you have disabled anonymous artifact access."
+            else
+              msg += " Confirm that your credentials are configured correctly."
+            end
+
+            raise Chef::Artifact::ArtifactDownloadError.new(msg)
+          else
+            raise e
+          end
+        end
       end
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
