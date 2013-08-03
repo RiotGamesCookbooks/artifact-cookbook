@@ -158,7 +158,7 @@ Downloads a file with artifact_file, then calls the package resource to install 
 ### Actions
 Action   | Description                               | Default
 -------  |-------------                              |---------
-create   | Download and install the artifact file    | Yes
+install  | Download and install the artifact file    | Yes
 
 ### Attributes
 Attribute              | Description                                                                          |Type     | Default

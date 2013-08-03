@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 
-action :create do
+action :install do
   sha = Digest::SHA1.hexdigest new_resource.location
   ext = new_resource.location.match(/[:\.]([0-9a-z]+)$/i)[1]
 
