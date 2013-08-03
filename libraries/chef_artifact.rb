@@ -219,6 +219,12 @@ class Chef
         REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
       end
 
+      # Checks the nexus server to see if the anonymous user is enabled
+      #
+      # @param node [Chef::Node] the node
+      # @param  ssl_verify=true [Boolean] whether or not ssl methods will be verified
+      #
+      # @return [Boolean]
       def anonymous_enabled?(node, ssl_verify=true)
         # TODO extract remote
         require 'nexus_cli'
