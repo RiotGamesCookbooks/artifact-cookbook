@@ -40,6 +40,14 @@ class Chef
       end
     end
 
+    class ArtifactDownloadError < ArtifactError
+      attr_accessor :message
+
+      def initialize(message)
+        @message = message
+      end
+    end
+
     class S3BucketNotFoundError < ArtifactError
       attr_reader :bucket_name
 
