@@ -27,4 +27,5 @@ attribute :location, :kind_of => String
 attribute :checksum, :kind_of  => String
 attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :group, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
+attribute :ssl_verify, :kind_of => [ TrueClass, FalseClass ], :default => true
 attribute :download_retries, :kind_of => Integer, :default => 1

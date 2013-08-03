@@ -567,6 +567,7 @@ private
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
+      ssl_verify new_resource.ssl_verify
       action :create
     end
   end
@@ -579,6 +580,7 @@ private
       location artifact_location
       owner new_resource.owner
       group new_resource.group
+      ssl_verify new_resource.ssl_verify
       action :create
     end
   end
@@ -592,6 +594,7 @@ private
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
+      ssl_verify new_resource.ssl_verify
       action :create
     end
   end

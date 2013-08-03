@@ -185,7 +185,7 @@ class Chef
       # @param  source [String] colon separated Nexus location
       # 
       # @return [String] a URL that can be used to retrieve an artifact
-      def artifact_download_url_for(node, source)
+      def artifact_download_url_for(node, source, ssl_verify=true)
         # TODO: Move this method into the nexus-cli
         config = data_bag_config_for(node, DATA_BAG_NEXUS)
         group_id, artifact_id, version, extension = source.split(':')
@@ -198,7 +198,7 @@ class Chef
           path: '/nexus/service/local/artifact/maven/redirect', 
           query: query_string
         }
-        builder_options[:userinfo] = "#{config['username']}:#{config['password']}" if node[:artifact][:nexus][:basic_auth_required]
+        builder_options[:userinfo] = "#{config['username']}:#{config['password']}" unless anonymous_enabled?(node, ssl_verify)
 
         builder.build(builder_options).to_s
       end
@@ -217,6 +217,14 @@ class Chef
         config = data_bag_config_for(node, DATA_BAG_NEXUS)
         remote = NexusCli::RemoteFactory.create(config, ssl_verify)
         REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
+      end
+
+      def anonymous_enabled?(node, ssl_verify=true)
+        # TODO extract remote
+        require 'nexus_cli'
+        config = data_bag_config_for(node, DATA_BAG_NEXUS)
+        remote = NexusCli::RemoteFactory.create(config, ssl_verify)
+        remote.get_user('anonymous')['status'] == 'enabled'
       end
 
       # Returns true when the artifact is believed to be from a

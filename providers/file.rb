@@ -26,7 +26,7 @@ def load_current_resource
       version "3.0.0"
     end
 
-    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location)
+    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location, new_resource.ssl_verify)
   else
     @file_location = new_resource.location
   end
@@ -47,13 +47,8 @@ action :create do
         begin
           remote_file_resource.run_action(:create)
         rescue Net::HTTPServerException => e
-          if e.to_s =~ /401/ and Chef::Artifact.from_nexus?(new_resource.location)
-            msg = "The artifact server returned 401, Unauthorized when attempting to retrieve this artifact."
-            if not node[:artifact][:nexus][:basic_auth_required]
-              msg += " Set the attribute artifact.anonymous_access_enabled to false if you have disabled anonymous artifact access."
-            else
-              msg += " Confirm that your credentials are configured correctly."
-            end
+          if e.to_s =~ /401/
+            msg = "The artifact server returned 401, Unauthorized when attempting to retrieve this artifact. Confirm that your credentials are configured correctly."
 
             raise Chef::Artifact::ArtifactDownloadError.new(msg)
           else
