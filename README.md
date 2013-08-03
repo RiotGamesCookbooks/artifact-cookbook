@@ -63,12 +63,12 @@ restart                    | A proc containing resources to be executed at the e
 after_deploy               | A proc containing resources to be executed after the deploy process ends             | Proc    |
 ssl_verify                 | Used to set whether or not communications with a Nexus server should be SSL verified | Boolean | true
 remove_top_level_directory | Deletes a top level directory from the extracted zip file                            | Boolean | false
-skip_manifest_check        | Skips the manifest check for idempotency when the version attribute is not changing  | Boolean | false 
+skip_manifest_check        | Skips the manifest check for idempotency when the version attribute is not changing  | Boolean | false
 remove_on_force            | Removes the current version directory contents when force is set                     | Boolean | false
 
 ### Deploy Flow, the Manifest, and Procs
 
-The deploy flow is outlined in the Artifact Deploy flow chart below. 
+The deploy flow is outlined in the Artifact Deploy flow chart below.
 
 ![Artifact Deploy](https://raw.github.com/RiotGames/artifact-cookbook/gh-pages/images/ArtifactDeployFlow.png)
 
@@ -150,12 +150,33 @@ for the downloaded files. Below is a brief description of the logic flow for the
 When the logic returns true, the downloaded file is considered good and the resource will exit. When the logic above returns false, the downloaded file is considered
 corrupt and an attempt will be made to download the file again. The number of retries can be controlled with the `download_retries` attribute.
 
-### Documentation
+
+## artifact_package
+
+Downloads a file with artifact_file, then calls the package resource to install it.
+
+### Actions
+Action   | Description                               | Default
+-------  |-------------                              |---------
+install  | Download and install the artifact file    | Yes
+
+### Attributes
+Attribute              | Description                                                                          |Type     | Default
+---------              |-------------                                                                         |-----    |--------
+name                   | The name of the package you'll be installing                                         | String  | name
+location               | The location to the artifact file. Either a nexus identifier, S3 path or URL         | String  |
+checksum               | The SHA256 checksum for verifying URL downloads. Not used when location is Nexus     | String  |
+owner                  | Owner of the downloaded file                                                         | String  |
+group                  | Group of the downloaded file                                                         | String  |
+download_retries       | The number of times to attempt to download the file if it fails its integrity check  | Integer | 1
+
+
+# Documentation
 
 The RDocs for the deploy.rb provider can be found under the [Top Level Namespace](http://riotgames.github.com/artifact-cookbook/doc/top-level-namespace.html) page
 for this repository.
 
-### Nexus Usage
+## Nexus Usage
 
 In order to deploy an artifact from a Nexus repository, you must first create
 an [encrypted data bag](http://wiki.opscode.com/display/chef/Encrypted+Data+Bags) that contains
@@ -175,7 +196,7 @@ Your data bag should look like the following:
 
 After your encrypted data bag is setup you can use Maven identifiers
 for your artifact_location. A Maven identifier is shown as a colon-separated string
-that includes three elemens - groupId:artifactId:extension - ex. "com.my.artifact:my-artifact:tgz". 
+that includes three elemens - groupId:artifactId:extension - ex. "com.my.artifact:my-artifact:tgz".
 If many environments share the same configuration, you can provide environment specific configuration in
 separate data_bag items:
 
@@ -203,7 +224,7 @@ separate data_bag items:
       }
     }
 
-#### S3 Usage
+## S3 Usage
 
 S3 can be used as a source of an archive.  The location path must be in the form ```s3://bucket-name/path/to/archive.tar.gz```.  You can provide AWS credentials in the data_bag,
 or if you are running on EC2 and are using IAM Instance Roles - you may omit the credentials and use the Instance Role. Alternatively, if the credentials are available on the
@@ -241,7 +262,7 @@ If you wish to provide your AWS credentials in a data_bag, the format is:
 
 Your data_bag can contain both ```nexus``` and ```aws``` configuration.
 
-### Examples
+# Examples
 
 ##### Deploying a Rails application
 
@@ -271,7 +292,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
             :options => database_options
           )
         end
-        
+
         execute "bundle install --local --path=vendor/bundle --without test development cucumber --binstubs" do
           environment { 'RAILS_ENV' => 'production' }
           user "riot"
@@ -307,7 +328,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
       }
 
       restart Proc.new {
-        bluepill_service 'pvpnet-unicorn' do 
+        bluepill_service 'pvpnet-unicorn' do
           action :restart
         end
       }
@@ -422,7 +443,7 @@ vagrant to change how they'll be provisioned. Default is 1.2.3 from a file URL.
 # Releasing
 
 1. Install the prerequisite gems
-    
+
         $ gem install chef
         $ gem install thor
 
