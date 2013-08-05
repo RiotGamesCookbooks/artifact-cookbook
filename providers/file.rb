@@ -26,7 +26,7 @@ def load_current_resource
       version "3.0.0"
     end
 
-    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location)
+    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location, new_resource.ssl_verify)
   else
     @file_location = new_resource.location
   end
@@ -44,7 +44,17 @@ action :create do
       end
     else
       unless ::File.exists?(new_resource.name) && checksum_valid?
-        remote_file_resource.run_action(:create)
+        begin
+          remote_file_resource.run_action(:create)
+        rescue Net::HTTPServerException => e
+          if e.to_s =~ /401/
+            msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
+
+            raise Chef::Artifact::ArtifactDownloadError.new(msg)
+          else
+            raise e
+          end
+        end
       end
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?

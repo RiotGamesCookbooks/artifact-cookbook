@@ -20,6 +20,12 @@ Provides your cookbooks with the Artifact Deploy LWRP
 
 With Vagrant 1.1, there is no longer a Vagrant RubyGem to install. Instead, follow the instructions on the [VagrantUp](http://docs.vagrantup.com/v2/installation/index.html) documentation pages.
 
+# Attributes
+
+Attribute                          | Description                                                                          | Default
+---------------------------------- |------------------------------------------------------------------------------------- |--------
+artifact.nexus.basic_auth_required | Set to true if the Nexus server requires basic authentication for file downloads. | false
+
 # Resources / Providers
 
 ## artifact_deploy
