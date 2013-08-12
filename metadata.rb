@@ -3,7 +3,7 @@ maintainer       "Riot Games"
 maintainer_email "kallan@riotgames.com"
 license          "Apache 2.0"
 description      "Provides your cookbooks with the Artifact Deploy LWRP"
-version          "1.8.0"
+version          "1.9.0"
 
 supports "centos"
 supports "redhat"
