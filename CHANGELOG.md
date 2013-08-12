@@ -1,3 +1,15 @@
+## v1.9.0
+
+* [#85] Allows basic auth to be used for nexus artifact retrieval.
+
+## v1.8.1
+
+* [#86] Repackage to get around tar issues. No changes.
+
+## v1.8.0
+
+* [#84] Add artifact_package resource.
+
 ## v1.7.1
 
 * [#80] Fixes support for S3 and Ubuntu. Thanks to @ephess.
