@@ -198,7 +198,7 @@ class Chef
           path: '/nexus/service/local/artifact/maven/redirect', 
           query: query_string
         }
-        builder_options[:userinfo] = "#{config['username']}:#{config['password']}" unless anonymous_enabled?(node, ssl_verify)
+        builder_options[:userinfo] = "#{config['username']}:#{config['password']}" unless !anonymous_read_all?(node, ssl_verify) || anonymous_enabled?(node, ssl_verify)
 
         builder.build(builder_options).to_s
       end
@@ -231,6 +231,13 @@ class Chef
         config = data_bag_config_for(node, DATA_BAG_NEXUS)
         remote = NexusCli::RemoteFactory.create(config, ssl_verify)
         remote.get_user('anonymous')['status'] == 'enabled'
+      end
+
+      def anonymous_read_all?(node, ssl_verify=true)
+        require 'nexus_cli'
+        config = data_bag_config_for(node, DATA_BAG_NEXUS)
+        remote = NexusCli::RemoteFactory.create(config, ssl_verify)
+        remote.get_user('anonymous')['data']['roles'].include?('repository-any-read')
       end
 
       # Returns true when the artifact is believed to be from a

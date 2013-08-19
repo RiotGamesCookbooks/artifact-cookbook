@@ -54,6 +54,7 @@ attribute :ssl_verify, :kind_of         => [ TrueClass, FalseClass ], :default =
 attribute :remove_top_level_directory, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :skip_manifest_check, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :remove_on_force, :kind_of => [ TrueClass, FalseClass ], :default => false
+attribute :nexus_connection, :kind_of => Chef::Artifact::NexusConfiguration, :default => Chef::Artifact::NexusConfiguration.default
 
 def initialize(*args)
   super
