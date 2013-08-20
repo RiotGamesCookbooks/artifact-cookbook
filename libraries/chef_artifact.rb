@@ -81,58 +81,6 @@ class Chef
         {}
       end
 
-      # Uses the provided parameters to make a call to the data bag
-      # configured Nexus server to have the server tell us what the
-      # actual version number is when 'latest' is given.
-      # 
-      # @param  node [Chef::Node] the node
-      # @param  artifact_location [String] a colon-separated Maven identifier string that represents the artifact
-      # @param  ssl_verify [Boolean] a boolean to pass through to the NexusCli::RemoteFactory#create method. This
-      #   is a TERRIBLE IDEA and you should never want to set this to false!
-      # 
-      # @example
-      #   Chef::Artifact.get_actual_version(node, "com.myartifact:my-artifact:latest:tgz") => "2.0.5"
-      #   Chef::Artifact.get_actual_version(node, "com.myartifact:my-artifact:1.0.1:tgz")  => "1.0.1"
-      # 
-      # @return [String] the version number that latest resolves to or the passed in value
-      def get_actual_version(node, artifact_location, ssl_verify=true)
-        version = artifact_location.split(':')[2]
-        if latest?(version)
-          require 'nexus_cli'
-          require 'rexml/document'
-          config = data_bag_config_for(node, DATA_BAG_NEXUS)
-          if config.empty?
-            raise DataBagNotFound.new(DATA_BAG_NEXUS)
-          end
-          remote = NexusCli::RemoteFactory.create(config, ssl_verify)
-          REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//version"].text
-        else
-          version
-        end
-      end
-
-      # Downloads a file to disk from the configured Nexus server.
-      # 
-      # @param  node [Chef::Node] the node
-      # @param  source [String] a colon-separated Maven identified string that represents the artifact
-      # @param  destination_dir [String] a path to download the artifact to
-      #
-      # @option options [Boolean] :ssl_verify
-      #   a boolean to pass through to the NexusCli::RemoteFactory#create method indicated whether
-      #   ssl methods should or should not be verified.
-      # 
-      # @return [Hash] writes a file to disk and returns a Hash with
-      # information about that file. See NexusCli::ArtifactActions#pull_artifact.
-      def retrieve_from_nexus(node, source, destination_dir, options = {})
-        require 'nexus_cli'
-        config = data_bag_config_for(node, DATA_BAG_NEXUS)
-        if config.empty?
-          raise DataBagNotFound.new(DATA_BAG_NEXUS)
-        end
-        remote = NexusCli::RemoteFactory.create(config, options[:ssl_verify])
-        remote.pull_artifact(source, destination_dir)
-      end
-
       # Downloads a file to disk from an Amazon S3 bucket
       #
       # @param  node [Chef::Node] the node
@@ -172,22 +120,6 @@ class Chef
           Chef::Log.warn("Expected an S3 URL but found #{source_file}")
           raise
         end
-      end
-
-      # Makes a call to Nexus and parses the returned XML to return
-      # the Nexus Server's stored SHA1 checksum for the given artifact.
-      #
-      # @param  node [Chef::Node] the node
-      # @param  artifact_location [String] a colon-separated Maven identifier that represents the artifact
-      # @param  ssl_verify=true [Boolean] whether or not ssl methods will be verified
-      #
-      # @return [String] the SHA1 entry for the artifact
-      def get_artifact_sha(node, artifact_location, ssl_verify=true)
-        require 'nexus_cli'
-        require 'rexml/document'
-        config = data_bag_config_for(node, DATA_BAG_NEXUS)
-        remote = NexusCli::RemoteFactory.create(config, ssl_verify)
-        REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
       end
 
       # Returns true when the artifact is believed to be from a
