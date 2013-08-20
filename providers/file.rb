@@ -25,8 +25,6 @@ def load_current_resource
     chef_gem "nexus_cli" do
       version "3.0.0"
     end
-
-    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location, new_resource.ssl_verify)
   else
     @file_location = new_resource.location
   end
@@ -42,20 +40,17 @@ action :create do
       unless ::File.exists?(new_resource.name) && checksum_valid?
         Chef::Artifact.retrieve_from_s3(node, new_resource.location, new_resource.name)
       end
-    else
+    elsif Chef::Artifact.from_nexus?(new_resource.location)
       unless ::File.exists?(new_resource.name) && checksum_valid?
         begin
-          remote_file_resource.run_action(:create)
-        rescue Net::HTTPServerException => e
-          if e.to_s =~ /401/
-            msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
-
-            raise Chef::Artifact::ArtifactDownloadError.new(msg)
-          else
-            raise e
-          end
+          Chef::Artifact.retrieve_from_nexus(node, new_resource.location, ::File.dirname(new_resource.name))
+        rescue NexusCli::PermissionsException => e
+          msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
+          raise Chef::Artifact::ArtifactDownloadError.new(msg)
         end
       end
+    else
+      remote_file_resource.run_action(:create)
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
   rescue Chef::Artifact::ArtifactChecksumError => e
