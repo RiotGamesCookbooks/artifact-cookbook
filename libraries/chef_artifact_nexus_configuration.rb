@@ -1,11 +1,9 @@
-require 'nexus_cli'
-
 class Chef
   module Artifact
     class NexusConfiguration
       class << self
         def default
-          config = data_bag_config_for(node, Chef::Artifact::DATA_BAG)
+          config = Chef::Artifact.data_bag_config_for(nil, Chef::Artifact::DATA_BAG)
           new(config[:url], config[:repository], config[:username], config[:password])
         end
       end
@@ -23,10 +21,6 @@ class Chef
           username: username,
           password: password
         }
-      end
-
-      def remote_for
-        NexusCli::RemoteFactory.create(to_hash, ssl_verify)
       end
     end
   end
