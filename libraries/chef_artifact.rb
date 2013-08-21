@@ -136,30 +136,17 @@ class Chef
       # Downloads a file to disk from an Amazon S3 bucket
       #
       # @param  node [Chef::Node] the node
-      # @param  source_file [String] a s3 url that represents the artifact in the form: s3://<bucket>/<object-path>
+      # @param  source_file [String] a s3 url that represents the artifact in the form: s3://<endpoint>/<bucket>/<object-path>
       # @param  destination_file [String] a path to download the artifact to
       #
       def retrieve_from_s3(node, source_file, destination_file)
         begin
           require 'aws-sdk'
           config = data_bag_config_for(node, DATA_BAG_AWS)
-          protocol, bucket_name, object_name = URI.split(source_file).compact
-          object_name = object_name[1..-1]
-          if config.empty?
-            Chef::Log.debug('No AWS Credentials provided, requires ENV variables or an IAM profile')
-            s3 = AWS::S3.new()
-          else
-            Chef::Log.debug("Using AWS Credentials from data_bag #{DATA_BAG}")
-            s3 = AWS::S3.new(
-                :access_key_id     => config['access_key_id'],
-                :secret_access_key => config['secret_access_key'])
-          end
+          s3_region, bucket_name, object_name = parse_s3_url(source_file)
 
-          bucket = s3.buckets[bucket_name]
-          raise S3BucketNotFoundError.new(bucket_name) unless bucket.exists?
-
-          object = bucket.objects[object_name]
-          raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless object.exists?
+          s3_client = configure_s3_client(config, s3_region)
+          object = get_s3_object(s3_client, bucket_name, object_name)
 
           Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
           ::File.open(destination_file, 'w') do |file|
@@ -172,6 +159,64 @@ class Chef
           Chef::Log.warn("Expected an S3 URL but found #{source_file}")
           raise
         end
+      end
+
+      # Create an AWS::S3 client that is configured with AWS Credentials (if provided in the data_bag) and the correct
+      # AWS region for the bucket being accessed.  If no AWS credentials are provided in the data_bag, it will assume
+      # the machine has an IAM Instance Profile available to get credentials from.
+      #
+      # @example
+      #   s3_client = Chef::Artifact.configure_s3_client({:access_key_id =>'access-key', :secret_access_key => 'secret-key'}, 'us-west-2')
+      #
+      # @param  config [Hash] Data bag configuration to load credentials from
+      # @param  s3_region [String] S3 Region to connect to
+      #
+      # @return [AWS::S3] An S3 client object that has been configured with credentials (if provided) for the correct region
+      def configure_s3_client(config, s3_region)
+        unless config.empty?
+          AWS.config(:access_key_id => config['access_key_id'], :secret_access_key => config['secret_access_key'])
+        end
+        AWS::S3.new(:region => s3_region)
+      end
+
+      # Parse a source url to retrieve the specific parts required to interact with the object on S3.  This method
+      # will also convert the s3 endpoint in the URL to the correct AWS Region.
+      #
+      # @example
+      #   s3_region, bucket_name, object_name = Chef::Artifact.parse_s3_url('s3://s3.amazonaws.com/my-bucket/my-file.txt')
+      #
+      # @param  source_url [String] Source url to parse
+      #
+      # @return [Array] An array containing the S3 Region, Bucket Name and Object Name
+      def parse_s3_url(source_url)
+        protocol, s3_endpoint, bucket_and_object = URI.split(source_url).compact
+        s3_region = 'us-east-1'  # default region
+        AWS.regions.each do |region|
+          s3_region = region.name if region.s3.client.endpoint == s3_endpoint
+        end
+        path_parts = bucket_and_object[1..-1].split('/')
+        bucket_name = path_parts[0]
+        object_name = path_parts[1..-1].join('/')
+        [s3_region, bucket_name, object_name]
+      end
+
+      # Given an s3_client, bucket name and object name - fetches the object from S3
+      #
+      # @example
+      #   object = Chef::Artifact.get_s3_object(s3_client, 'my-bucket', 'my-file.txt')
+      #
+      # @param  s3_client [AWS::S3]
+      # @param  bucket_name [String] Name of the S3 bucket
+      # @param  object_name [String] Name of the S3 object
+      #
+      # @return [AWS::S3::S3Object] An S3 Object
+      def get_s3_object(s3_client, bucket_name, object_name)
+        bucket = s3_client.buckets[bucket_name]
+        raise S3BucketNotFoundError.new(bucket_name) unless bucket.exists?
+
+        object = bucket.objects[object_name]
+        raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless object.exists?
+        object
       end
 
       # Generates a URL that hits the Nexus redirect endpoint which will

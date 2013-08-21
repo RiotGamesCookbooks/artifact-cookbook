@@ -207,9 +207,15 @@ separate data_bag items:
 
 #### S3 Usage
 
-S3 can be used as a source of an archive.  The location path must be in the form ```s3://bucket-name/path/to/archive.tar.gz```.  You can provide AWS credentials in the data_bag,
+S3 can be used as a source of an archive.  The location path must be in the form ```s3://s3-endpoint/bucket-name/path/to/archive.tar.gz```.  You can provide AWS credentials in the data_bag,
 or if you are running on EC2 and are using IAM Instance Roles - you may omit the credentials and use the Instance Role. Alternatively, if the credentials are available on the
 environment they will be used from there (more information on the Environment variable keys an be found <http://docs.aws.amazon.com/AWSSdkDocsRuby/latest/DeveloperGuide/ruby-dg-roles.html>).
+
+The S3 endpoints are documented here <http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region>.
+
+If you want to retrieve an object from an S3 bucket in the US-Standard region - use the following format: ```s3://s3.amazonaws.com/bucket-name/path/to/archive.tar.gz```.
+
+If you want to retrieve and object from a bucket in the US West (Oregon) Region region ```s3://s3-us-west-2.amazonaws.com/bucket-name/path/to/archive.tar.gz``` or EU (Ireland) Region:  ```s3://s3-eu-west-1.amazonaws.com/bucket-name/path/to/archive.tar.gz```
 
 This is example IAM policy to get an artifact from S3. Note that this policy will limit permissions to just the files contained under the ```deploys/``` path.
 If you wish to keep them in the root of your bucket, just omit the ```deploys/``` portion and put ```<your-s3-bucket>/*```:
@@ -355,7 +361,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
 
     artifact_deploy "my-artifact" do
       version           "1.0.0"
-      artifact_location "s3://my-website-deployments/deploys/my-artifact-1.0.0.tgz"
+      artifact_location "s3://s3.amazonaws.com/my-website-deployments/deploys/my-artifact-1.0.0.tgz"
       deploy_to         "/srv/my-artifact"
       owner             node[:artifact_owner]
       group             node[:artifact_group]
@@ -404,7 +410,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
 ##### Using artifact_file to download a file from an S3 bucket
 
     artifact_file "/tmp/my-artifact.tgz" do
-      location "s3://my-website-deployments/deploys/my-artifact-1.0.0.tgz"
+      location "s3://s3.amazonaws.com/my-website-deployments/deploys/my-artifact-1.0.0.tgz"
       owner "me"
       group "mes"
       checksum "fcb188ed37d41ff2cbf1a52d3a11bfde666e036b5c7ada1496dc1d53dd6ed5dd"
