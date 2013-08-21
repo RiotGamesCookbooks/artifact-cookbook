@@ -1,3 +1,23 @@
+## v1.9.0
+
+* [#85] Allows basic auth to be used for nexus artifact retrieval.
+
+## v1.8.1
+
+* [#86] Repackage to get around tar issues. No changes.
+
+## v1.8.0
+
+* [#84] Add artifact_package resource.
+
+## v1.7.1
+
+* [#80] Fixes support for S3 and Ubuntu. Thanks to @ephess.
+
+## v1.7.0
+
+* [#71] Added support for using S3 as an artifact deployment source.
+
 ## v1.6.0
 
 * [#70] Added a new LWRP, artifact\_file which wraps remote_file with some retry logic for corrupt downloads. Also uses the configured Nexus server to check Nexus downloads.

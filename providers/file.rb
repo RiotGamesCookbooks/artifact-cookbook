@@ -26,7 +26,7 @@ def load_current_resource
       version "3.0.0"
     end
 
-    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location)
+    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location, new_resource.ssl_verify)
   else
     @file_location = new_resource.location
   end
@@ -43,7 +43,19 @@ action :create do
         Chef::Artifact.retrieve_from_s3(node, new_resource.location, new_resource.name)
       end
     else
-      remote_file_resource.run_action(:create)
+      unless ::File.exists?(new_resource.name) && checksum_valid?
+        begin
+          remote_file_resource.run_action(:create)
+        rescue Net::HTTPServerException => e
+          if e.to_s =~ /401/
+            msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
+
+            raise Chef::Artifact::ArtifactDownloadError.new(msg)
+          else
+            raise e
+          end
+        end
+      end
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
   rescue Chef::Artifact::ArtifactChecksumError => e
@@ -70,7 +82,7 @@ def checksum_valid?
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
     else
-      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, not verifying against downloaded file."
+      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, assuming checksum is valid."
       true
     end
   end

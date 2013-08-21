@@ -230,14 +230,22 @@ class Chef
       # @param  source [String] colon separated Nexus location
       # 
       # @return [String] a URL that can be used to retrieve an artifact
-      def artifact_download_url_for(node, source)
+      def artifact_download_url_for(node, source, ssl_verify=true)
         # TODO: Move this method into the nexus-cli
-        config = nexus_config_for(node)
+        config = data_bag_config_for(node, DATA_BAG_NEXUS)
         group_id, artifact_id, version, extension = source.split(':')
         query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}"
         uri_for_url = URI(config['url'])
         builder = uri_for_url.scheme =~ /https/ ? URI::HTTPS : URI::HTTP
-        builder.build(host: uri_for_url.host, port: uri_for_url.port, path: '/nexus/service/local/artifact/maven/redirect', query: query_string).to_s
+        builder_options = {
+          host: uri_for_url.host, 
+          port: uri_for_url.port, 
+          path: '/nexus/service/local/artifact/maven/redirect', 
+          query: query_string
+        }
+        builder_options[:userinfo] = "#{config['username']}:#{config['password']}" unless anonymous_enabled?(node, ssl_verify)
+
+        builder.build(builder_options).to_s
       end
 
       # Makes a call to Nexus and parses the returned XML to return
@@ -251,9 +259,23 @@ class Chef
       def get_artifact_sha(node, artifact_location, ssl_verify=true)
         require 'nexus_cli'
         require 'rexml/document'
-        config = nexus_config_for(node)
+        config = data_bag_config_for(node, DATA_BAG_NEXUS)
         remote = NexusCli::RemoteFactory.create(config, ssl_verify)
         REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
+      end
+
+      # Checks the nexus server to see if the anonymous user is enabled
+      #
+      # @param node [Chef::Node] the node
+      # @param  ssl_verify=true [Boolean] whether or not ssl methods will be verified
+      #
+      # @return [Boolean]
+      def anonymous_enabled?(node, ssl_verify=true)
+        # TODO extract remote
+        require 'nexus_cli'
+        config = data_bag_config_for(node, DATA_BAG_NEXUS)
+        remote = NexusCli::RemoteFactory.create(config, ssl_verify)
+        remote.get_user('anonymous')['status'] == 'enabled'
       end
 
       # Returns true when the artifact is believed to be from a

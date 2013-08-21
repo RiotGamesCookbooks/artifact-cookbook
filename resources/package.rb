@@ -1,8 +1,8 @@
 #
 # Cookbook Name:: artifact
-# Resource:: file
+# Resource:: package
 #
-# Author:: Kyle Allan (<kallan@riotgames.com>)
+# Author:: Michael Ivey (<michael.ivey@riotgames.com>)
 #
 # Copyright 2013, Riot Games
 #
@@ -19,13 +19,12 @@
 # limitations under the License.
 #
 
-actions :create
-default_action :create
+actions :install
+default_action :install
 
-attribute :path, :kind_of => String, :required => true, :name_attribute => true
+attribute :name, :kind_of => String, :required => true, :name_attribute => true
 attribute :location, :kind_of => String
 attribute :checksum, :kind_of  => String
-attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
-attribute :group, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
-attribute :ssl_verify, :kind_of => [ TrueClass, FalseClass ], :default => true
+attribute :owner, :kind_of => String, :regex => Chef::Config[:user_valid_regex], :default => 'root'
+attribute :group, :kind_of => String, :regex => Chef::Config[:user_valid_regex], :default => 'root'
 attribute :download_retries, :kind_of => Integer, :default => 1
