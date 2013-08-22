@@ -212,13 +212,13 @@ describe Chef::Artifact do
     let(:mock_s3_object) { mock('my-file.tar.gz') }
     let(:stub_buckets_list) { stub('s3buckets') }
     let(:stub_objects_list) { stub('s3ojects') }
-    let(:get_s3_object) { described_class.get_s3_object(mock_s3_client, 'my-bucket', 'my-file.tar.gz') }
+    let(:get_s3_object) { described_class.get_s3_object('my-bucket', 'my-file.tar.gz') }
 
     context "when getting an object from S3" do
       it "loads file normally" do
         stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
         stub_objects_list.stub(:[]).with('my-file.tar.gz').and_return(mock_s3_object)
-
+        AWS::S3.should_receive(:new).with(no_args()).and_return(mock_s3_client)
         mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
         mock_s3_bucket.should_receive(:objects).and_return(stub_objects_list)
         mock_s3_bucket.should_receive(:exists?).and_return(true)
@@ -231,7 +231,7 @@ describe Chef::Artifact do
     context "when asking for an S3 bucket that does not exist" do
       it "throws an S3BucketNotFoundError" do
         stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
-
+        AWS::S3.should_receive(:new).with(no_args()).and_return(mock_s3_client)
         mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
         mock_s3_bucket.should_receive(:exists?).and_return(false)
 
@@ -243,7 +243,7 @@ describe Chef::Artifact do
       it "throws an S3ArtifactNotFoundError" do
         stub_buckets_list.stub(:[]).with('my-bucket').and_return(mock_s3_bucket)
         stub_objects_list.stub(:[]).with('my-file.tar.gz').and_return(mock_s3_object)
-
+        AWS::S3.should_receive(:new).with(no_args()).and_return(mock_s3_client)
         mock_s3_client.should_receive(:buckets).and_return(stub_buckets_list)
         mock_s3_bucket.should_receive(:objects).and_return(stub_objects_list)
         mock_s3_bucket.should_receive(:exists?).and_return(true)
@@ -254,29 +254,6 @@ describe Chef::Artifact do
     end
   end
 
-  describe ":configure_s3_client" do
-    require 'aws-sdk'
-    AWS.stub!
-    subject { configure_s3_client }
-
-    context "when configuring an s3 client with data_bag credentials" do
-      let(:config) { { 'access_key_id' => 'my_access_key', 'secret_access_key' => 'my_secret_key' } }
-      it "uses the access_key_id and secret_access_key" do
-        AWS.should_receive(:config).with({:access_key_id=>"my_access_key", :secret_access_key=>"my_secret_key"})
-        AWS::S3.should_receive(:new).with({:region => 'us-east-1'})
-        Chef::Artifact.configure_s3_client(config, 'us-east-1')
-      end
-    end
-
-    context "when configuring an s3 client with no credentials" do
-      let(:config) { { } }
-      it "provides no credentials" do
-        AWS.should_not_receive(:config)
-        AWS::S3.should_receive(:new).with({:region => 'us-east-1'})
-        Chef::Artifact.configure_s3_client(config, 'us-east-1')
-      end
-    end
-  end
 
   describe ":retrieve_from_s3" do
     require 'aws-sdk'
@@ -291,25 +268,49 @@ describe Chef::Artifact do
     let(:mock_file_contents) { 'test file contents' }
     let(:expected_file_contents) { 'test file contents' }
 
-    context "when getting a valid file from S" do
+    context "when getting a file from S3 with credentials" do
       let(:data_bag_item) { { 'aws' => { 'access_key_id' => 'my_access_key', 'secret_access_key' => 'my_secret_key' } } }
       before do
         Chef::Config.stub(:[]).and_return({solo: true})
         Chef::DataBagItem.stub(:load).and_return(data_bag_item)
-        described_class.should_receive(:configure_s3_client).with({ 'access_key_id' => 'my_access_key', 'secret_access_key' => 'my_secret_key' }, 'us-east-1').and_return(mock_s3_client)
-        described_class.should_receive(:get_s3_object).with(mock_s3_client, "my-bucket", "my-file.tar.gz").and_return(mock_s3_object)
+        described_class.should_receive(:get_s3_object).with("my-bucket", "my-file.tar.gz").and_return(mock_s3_object)
         File.should_receive(:open).with("filename", "w").and_yield(mock_output_file)
       end
 
-      it "loads a normal data bag" do
+      it "configures AWS correct and reads the file" do
         stub_buckets_list.stub(:[]).with("my-bucket").and_return(mock_s3_bucket)
         stub_objects_list.stub(:[]).with("my-file.tar.gz").and_return(mock_s3_object)
+
+        AWS.should_receive(:config).with({:access_key_id=>"my_access_key", :secret_access_key=>"my_secret_key", :s3 => { :endpoint => 's3.amazonaws.com' }})
 
         mock_s3_object.should_receive(:read).and_yield(mock_file_contents)
         mock_output_file.should_receive(:size).and_return(11241)
         mock_output_file.should_receive(:write).with(expected_file_contents)
 
         Chef::Artifact.retrieve_from_s3(node, "s3://s3.amazonaws.com/my-bucket/my-file.tar.gz", "filename")
+      end
+    end
+
+    context "when getting a file from S3 without credentials" do
+      let(:data_bag_item) { { } }
+      before do
+        Chef::Config.stub(:[]).and_return({solo: true})
+        Chef::DataBagItem.stub(:load).and_return(data_bag_item)
+        described_class.should_receive(:get_s3_object).with("my-bucket", "my-file.tar.gz").and_return(mock_s3_object)
+        File.should_receive(:open).with("filename", "w").and_yield(mock_output_file)
+      end
+
+      it "configures AWS correct and reads the file" do
+        stub_buckets_list.stub(:[]).with("my-bucket").and_return(mock_s3_bucket)
+        stub_objects_list.stub(:[]).with("my-file.tar.gz").and_return(mock_s3_object)
+
+        AWS.should_receive(:config).with({:s3 => { :endpoint => 's3-us-west-2.amazonaws.com' }})
+
+        mock_s3_object.should_receive(:read).and_yield(mock_file_contents)
+        mock_output_file.should_receive(:size).and_return(11241)
+        mock_output_file.should_receive(:write).with(expected_file_contents)
+
+        Chef::Artifact.retrieve_from_s3(node, "s3://s3-us-west-2.amazonaws.com/my-bucket/my-file.tar.gz", "filename")
       end
     end
   end
