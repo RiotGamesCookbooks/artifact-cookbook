@@ -52,14 +52,14 @@ def load_current_resource
 
   if Chef::Artifact.from_nexus?(@new_resource.artifact_location)
     chef_gem "nexus_cli" do
-      version "3.0.0"
+      version "4.0.0"
     end
 
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
     @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, @new_resource.version, extension].join(':'))
-    @artifact_location = [group_id, artifact_id, artifact_version, extension].join(':')
+    @artifact_location = [group_id, artifact_id, extension, artifact_version].join(':')
   elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
       case node['platform_family']
@@ -266,7 +266,7 @@ end
 # @return [String] the artifacts filename
 def artifact_filename
   if Chef::Artifact.from_nexus?(new_resource.artifact_location)
-    group_id, artifact_id, version, extension = artifact_location.split(":")
+    group_id, artifact_id, extension, version = artifact_location.split(":")
     unless extension
       extension = "jar"
     end

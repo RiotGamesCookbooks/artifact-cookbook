@@ -26,7 +26,7 @@ attr_reader :nexus_connection
 def load_current_resource
   if Chef::Artifact.from_nexus?(new_resource.location)
     chef_gem "nexus_cli" do
-      version "3.0.0"
+      version "4.0.0"
     end
 
     @nexus_configuration = new_resource.nexus_configuration
