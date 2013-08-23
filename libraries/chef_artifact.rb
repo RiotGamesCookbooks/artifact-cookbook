@@ -84,30 +84,24 @@ class Chef
       # Downloads a file to disk from an Amazon S3 bucket
       #
       # @param  node [Chef::Node] the node
-      # @param  source_file [String] a s3 url that represents the artifact in the form: s3://<bucket>/<object-path>
+      # @param  source_file [String] a s3 url that represents the artifact in the form: s3://<endpoint>/<bucket>/<object-path>
       # @param  destination_file [String] a path to download the artifact to
       #
       def retrieve_from_s3(node, source_file, destination_file)
         begin
           require 'aws-sdk'
           config = data_bag_config_for(node, DATA_BAG_AWS)
-          protocol, bucket_name, object_name = URI.split(source_file).compact
-          object_name = object_name[1..-1]
+          s3_endpoint, bucket_name, object_name = parse_s3_url(source_file)
+
           if config.empty?
-            Chef::Log.debug('No AWS Credentials provided, requires ENV variables or an IAM profile')
-            s3 = AWS::S3.new()
+            AWS.config(:s3 => { :endpoint => s3_endpoint })
           else
-            Chef::Log.debug("Using AWS Credentials from data_bag #{DATA_BAG}")
-            s3 = AWS::S3.new(
-                :access_key_id     => config['access_key_id'],
-                :secret_access_key => config['secret_access_key'])
+            AWS.config(:access_key_id => config['access_key_id'],
+                       :secret_access_key => config['secret_access_key'],
+                       :s3 => { :endpoint => s3_endpoint })
           end
 
-          bucket = s3.buckets[bucket_name]
-          raise S3BucketNotFoundError.new(bucket_name) unless bucket.exists?
-
-          object = bucket.objects[object_name]
-          raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless object.exists?
+          object = get_s3_object(bucket_name, object_name)
 
           Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
           ::File.open(destination_file, 'w') do |file|
@@ -120,6 +114,41 @@ class Chef
           Chef::Log.warn("Expected an S3 URL but found #{source_file}")
           raise
         end
+      end
+
+      # Parse a source url to retrieve the specific parts required to interact with the object on S3.
+      #
+      # @example
+      #   s3_endpoint, bucket_name, object_name = Chef::Artifact.parse_s3_url('s3://s3.amazonaws.com/my-bucket/my-file.txt')
+      #
+      # @param  source_url [String] Source url to parse
+      #
+      # @return [Array] An array containing the S3 endpoint, Bucket Name and Object Name
+      def parse_s3_url(source_url)
+        protocol, s3_endpoint, bucket_and_object = URI.split(source_url).compact
+        path_parts = bucket_and_object[1..-1].split('/')
+        bucket_name = path_parts[0]
+        object_name = path_parts[1..-1].join('/')
+        [s3_endpoint, bucket_name, object_name]
+      end
+
+      # Given a bucket and object name - fetches the object from S3
+      #
+      # @example
+      #   object = Chef::Artifact.get_s3_object('my-bucket', 'my-file.txt')
+      #
+      # @param  bucket_name [String] Name of the S3 bucket
+      # @param  object_name [String] Name of the S3 object
+      #
+      # @return [AWS::S3::S3Object] An S3 Object
+      def get_s3_object(bucket_name, object_name)
+        s3_client = AWS::S3.new()
+        bucket = s3_client.buckets[bucket_name]
+        raise S3BucketNotFoundError.new(bucket_name) unless bucket.exists?
+
+        object = bucket.objects[object_name]
+        raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless object.exists?
+        object
       end
 
       # Returns true when the artifact is believed to be from a
