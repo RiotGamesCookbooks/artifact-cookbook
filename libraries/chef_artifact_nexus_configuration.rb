@@ -15,7 +15,7 @@ class Chef
 
       attr_accessor :url, :repository, :username, :password, :ssl_verify
 
-      def initialize(url, repository, username, password, ssl_verify=true)
+      def initialize(url, repository, username=nil, password=nil, ssl_verify=true)
         @url, @repository, @username, @password, @ssl_verify = url, repository, username, password, ssl_verify
       end
 

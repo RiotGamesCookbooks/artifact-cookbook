@@ -33,7 +33,7 @@ attr_reader :previous_version_paths
 attr_reader :previous_version_numbers
 attr_reader :artifact_location
 attr_reader :artifact_version
-attr_reader :nexus_configuration
+attr_reader :nexus_configuration_object
 attr_reader :nexus_connection
 
 def load_current_resource
@@ -52,11 +52,11 @@ def load_current_resource
 
   if Chef::Artifact.from_nexus?(@new_resource.artifact_location)
     chef_gem "nexus_cli" do
-      version "4.0.0"
+      version "4.0.1"
     end
 
-    @nexus_configuration = new_resource.nexus_configuration
-    @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
+    @nexus_configuration_object = new_resource.nexus_configuration
+    @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration_object)
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
     @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, @new_resource.version, extension].join(':'))
     @artifact_location = [group_id, artifact_id, extension, artifact_version].join(':')
@@ -100,7 +100,7 @@ def load_current_resource
   @deploy                      = false
   @skip_manifest_check         = @new_resource.skip_manifest_check
   @remove_on_force             = @new_resource.remove_on_force
-  @nexus_configuration         = @new_resource.nexus_configuration
+  @nexus_configuration_object  = @new_resource.nexus_configuration
   @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
 
   @current_resource
@@ -584,7 +584,7 @@ private
       location artifact_location
       owner new_resource.owner
       group new_resource.group
-      nexus_configuration nexus_configuration
+      nexus_configuration nexus_configuration_object
       action :create
     end
   end
