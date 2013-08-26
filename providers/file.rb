@@ -18,18 +18,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 attr_reader :file_location
+attr_reader :nexus_configuration
+attr_reader :nexus_connection
 
 def load_current_resource
   if Chef::Artifact.from_nexus?(new_resource.location)
     chef_gem "nexus_cli" do
-      version "3.0.0"
+      version "4.0.1"
     end
 
-    @file_location = Chef::Artifact.artifact_download_url_for(node, new_resource.location, new_resource.ssl_verify)
-  else
-    @file_location = new_resource.location
+    @nexus_configuration = new_resource.nexus_configuration
+    @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
   end
+  @file_location = new_resource.location
 
   @current_resource = Chef::Resource::ArtifactFile.new(@new_resource.name)
   @current_resource
@@ -38,24 +41,21 @@ end
 action :create do
   retries = new_resource.download_retries
   begin
-    if Chef::Artifact.from_s3?(new_resource.location)
+    if Chef::Artifact.from_s3?(file_location)
       unless ::File.exists?(new_resource.name) && checksum_valid?
-        Chef::Artifact.retrieve_from_s3(node, new_resource.location, new_resource.name)
+        Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.name)
       end
-    else
+    elsif Chef::Artifact.from_nexus?(file_location)
       unless ::File.exists?(new_resource.name) && checksum_valid?
         begin
-          remote_file_resource.run_action(:create)
-        rescue Net::HTTPServerException => e
-          if e.to_s =~ /401/
-            msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
-
-            raise Chef::Artifact::ArtifactDownloadError.new(msg)
-          else
-            raise e
-          end
+          nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.name))
+        rescue NexusCli::PermissionsException => e
+          msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
+          raise Chef::Artifact::ArtifactDownloadError.new(msg)
         end
       end
+    else
+      remote_file_resource.run_action(:create)
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
   rescue Chef::Artifact::ArtifactChecksumError => e
@@ -76,8 +76,8 @@ end
 #   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
-  if Chef::Artifact.from_nexus?(new_resource.location)
-    Digest::SHA1.file(new_resource.name).hexdigest == Chef::Artifact.get_artifact_sha(node, new_resource.location)
+  if Chef::Artifact.from_nexus?(file_location)
+    Digest::SHA1.file(new_resource.name).hexdigest == nexus_connection.get_artifact_sha(file_location)
   else
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
