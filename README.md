@@ -61,10 +61,10 @@ migrate                    | A proc containing resources to be executed during t
 after_migrate              | A proc containing resources to be executed after the migration Proc                  | Proc    |
 restart                    | A proc containing resources to be executed at the end of a successful deploy         | Proc    |
 after_deploy               | A proc containing resources to be executed after the deploy process ends             | Proc    |
-ssl_verify                 | Used to set whether or not communications with a Nexus server should be SSL verified | Boolean | true
 remove_top_level_directory | Deletes a top level directory from the extracted zip file                            | Boolean | false
 skip_manifest_check        | Skips the manifest check for idempotency when the version attribute is not changing  | Boolean | false
 remove_on_force            | Removes the current version directory contents when force is set                     | Boolean | false
+nexus_configuration        | Accepts an object that can customize the Nexus server connection information         | Chef::Artifact::NexusConfiguration | Chef::Artifact::NexusConfiguration.from_data_bag
 
 ### Deploy Flow, the Manifest, and Procs
 
@@ -178,8 +178,7 @@ for this repository.
 
 ## Nexus Usage
 
-In order to deploy an artifact from a Nexus repository, you must first create
-an [encrypted data bag](http://wiki.opscode.com/display/chef/Encrypted+Data+Bags) that contains
+By default, deploying an artifact from a Nexus repository requires an [encrypted data bag](http://wiki.opscode.com/display/chef/Encrypted+Data+Bags) that contains
 the credentials for your Nexus repository.
 
     knife data bag create artifact _wildcard -c <your chef config> --secret-file=<your secret file>
@@ -188,15 +187,17 @@ Your data bag should look like the following:
 
     {
       "id": "_wildcard",
-      "username": "nexus_user",
-      "password": "nexus_user_password",
-      "url": "http://nexus.yourcompany.com:8081/nexus/",
-      "repository": "your_repository"
+      "nexus": {
+        "username": "nexus_user",
+        "password": "nexus_user_password",
+        "url": "http://nexus.yourcompany.com:8081/nexus/",
+        "repository": "your_repository"
+      }
     }
 
 After your encrypted data bag is setup you can use Maven identifiers
-for your artifact_location. A Maven identifier is shown as a colon-separated string
-that includes three elemens - groupId:artifactId:extension - ex. "com.my.artifact:my-artifact:tgz".
+as your `artifact_location` attribute. A Maven identifier is shown as a colon-separated string
+that includes three elements - groupId:artifactId:extension - ex. "com.my.artifact:my-artifact:tgz".
 If many environments share the same configuration, you can provide environment specific configuration in
 separate data_bag items:
 
@@ -223,6 +224,22 @@ separate data_bag items:
         "repository": "your_repository"
       }
     }
+
+To further customize your Nexus usage, you can use the new `nexus_configuration` attribute. To do so, create a new `Chef::Artifact::NexusConfiguration` object, passing it
+the customized parameters - url, repository, username (defaults to nil), password (defaults to nil), ssl_verify (defaults to true). Then pass that object to the `artifact_deploy` resource. For example:
+
+    nexus_configuration_object = Chef::Artifact::NexusConfiguration("http://nexus-url", "snapshots", "username", "password")
+
+    artifact_deploy "my-artifact" do
+      version             "latest"
+      artifact_location   "com.foo:my-artifact:tgz"
+      nexus_configuration nexus_configuration_object
+      deploy_to           "/opt/my-artifact"
+      owner               "artifact"
+      group               "artifact"
+    end
+
+To access a Nexus repository anonymously, simply omit the username and password from the construction of the `Chef::Artifact::NexusConfiguration` object.
 
 ## S3 Usage
 
