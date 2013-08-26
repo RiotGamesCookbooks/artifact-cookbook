@@ -61,7 +61,7 @@ action :create do
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
       retries -= 1
-      Chef::Log.info "[artifact_file] Downloaded file checksum does not match the provided checksum. Retrying - #{retries} attempt(s) left."
+      Chef::Log.warn "[artifact_file] Downloaded file checksum does not match the provided checksum. Retrying - #{retries} attempt(s) left."
       retry
     end
     raise Chef::Artifact::ArtifactChecksumError
@@ -82,7 +82,7 @@ def checksum_valid?
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
     else
-      Chef::Log.info "[artifact_file] No checksum provided for artifact_file, assuming checksum is valid."
+      Chef::Log.debug "[artifact_file] No checksum provided for artifact_file, assuming checksum is valid."
       true
     end
   end
