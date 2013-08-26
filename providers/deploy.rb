@@ -58,7 +58,7 @@ def load_current_resource
     @nexus_configuration_object = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration_object)
     group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
-    @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, @new_resource.version, extension].join(':'))
+    @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, extension, @new_resource.version].join(':'))
     @artifact_location = [group_id, artifact_id, extension, artifact_version].join(':')
   elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?

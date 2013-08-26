@@ -19,17 +19,17 @@ class Chef
       # configured Nexus server to have the server tell us what the
       # actual version number is when 'latest' is given.
       #
-      # @param  artifact_location [String] a colon-separated Maven identifier string that represents the artifact
+      # @param  coordinates [String] a colon-separated Maven identifier string that represents the artifact
       #
       # @example
-      #   Chef::Artifact.get_actual_version("com.myartifact:my-artifact:latest:tgz") => "2.0.5"
-      #   Chef::Artifact.get_actual_version("com.myartifact:my-artifact:1.0.1:tgz")  => "1.0.1"
+      #   nexus.get_actual_version("com.myartifact:my-artifact:tgz:latest") => "2.0.5"
+      #   nexus.get_actual_version("com.myartifact:my-artifact:tgz:1.0.1")  => "1.0.1"
       #
       # @return [String] the version number that latest resolves to or the passed in value
-      def get_actual_version(artifact_location)
-        version = artifact_location.split(':')[2]
+      def get_actual_version(coordinates)
+        version = coordinates.split(':')[3]
         if Chef::Artifact.latest?(version)
-          REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//version"].text
+          REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//version"].text
         else
           version
         end
@@ -49,11 +49,11 @@ class Chef
       # Makes a call to Nexus and parses the returned XML to return
       # the Nexus Server's stored SHA1 checksum for the given artifact.
       #
-      # @param  artifact_location [String] a colon-separated Maven identifier that represents the artifact
+      # @param  coordinates [String] a colon-separated Maven identifier that represents the artifact
       #
       # @return [String] the SHA1 entry for the artifact
-      def get_artifact_sha(artifact_location)
-        REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//sha1"].text
+      def get_artifact_sha(coordinates)
+        REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//sha1"].text
       end
     end
   end
