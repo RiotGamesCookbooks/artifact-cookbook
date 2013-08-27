@@ -432,7 +432,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
 #### Using artifact_file to download a file from Nexus
 
     artifact_file "/tmp/my-artifact.tgz" do
-      location "com.test:my-artifact:1.0.0:tgz"
+      location "com.test:my-artifact:tgz:1.0.0"
       owner "me"
       group "mes"
       action :create
@@ -451,6 +451,24 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
       group "mes"
       checksum "fcb188ed37d41ff2cbf1a52d3a11bfde666e036b5c7ada1496dc1d53dd6ed5dd"
       action :create
+    end
+
+##### Using artifact_package to install an rpm from a website
+
+    artifact_package "tomcat" do
+      location "http://my-website/tomcat-5.0.rpm"
+      owner "me"
+      group "mes"
+      action :install
+    end
+
+##### Using artifact_package to install an rpm from Nexus
+
+    artifact_package "tomcat" do
+      location "com.rpm:tomcat:rpm:6.0.0"
+      owner "me"
+      group "mes"
+      action :install
     end
 
 # Testing
