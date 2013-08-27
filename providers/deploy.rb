@@ -387,17 +387,17 @@ private
   def has_manifest_changed?
     require 'active_support/core_ext/hash'
 
-    if skip_manifest_check?
-      Chef::Log.debug "artifact_deploy[has_manifest_changed?] Skip Manifest Check attribute is true. Skipping manifest check."
-      return false
-    end
-
     Chef::Log.debug "artifact_deploy[has_manifest_changed?] Loading manifest.yaml file from directory: #{release_path}"
     begin
       saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
     rescue Errno::ENOENT
       Chef::Log.warn "artifact_deploy[has_manifest_changed?] Cannot load manifest.yaml. It may have been deleted. Deploying."
       return true
+    end
+
+    if skip_manifest_check?
+      Chef::Log.debug "artifact_deploy[has_manifest_changed?] Skip Manifest Check attribute is true. Skipping manifest check."
+      return false
     end
 
     current_manifest = generate_manifest(release_path)
