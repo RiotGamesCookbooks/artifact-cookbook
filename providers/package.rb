@@ -19,13 +19,34 @@
 # limitations under the License.
 #
 
+attr_reader :nexus_configuration_object
+attr_reader :extension
+attr_reader :file_name
+
+def load_current_resource
+  if Chef::Artifact.from_nexus?(new_resource.location)
+    chef_gem "nexus_cli" do
+      version "4.0.2"
+    end
+    require 'nexus_cli'
+    artifact = NexusCli::Artifact.new(new_resource.location)
+    @nexus_configuration_object = new_resource.nexus_configuration
+    @extension = artifact.extension
+    @file_name = artifact.file_name
+  else
+    sha = Digest::SHA1.hexdigest new_resource.location
+    @extension = new_resource.location.match(/[:\.]([0-9a-z]+)$/i)[1]
+    @file_name = "#{new_resource.name}-#{sha}.#{ext}"
+  end
+  @current_resource = Chef::Resource::ArtifactPackage.new(@new_resource.name)
+  @current_resource
+end
+
 action :install do
-  sha = Digest::SHA1.hexdigest new_resource.location
-  ext = new_resource.location.match(/[:\.]([0-9a-z]+)$/i)[1]
 
   pkg = ::File.join(Chef::Config[:file_cache_path],
                          "artifact_packages",
-                         "#{new_resource.name}-#{sha}.#{ext}")
+                         file_name)
 
   directory ::File.dirname(pkg) do
     action :create
@@ -37,6 +58,7 @@ action :install do
     checksum new_resource.checksum if new_resource.checksum
     owner new_resource.owner
     group new_resource.group
+    nexus_configuration nexus_configuration_object if Chef::Artifact.from_nexus?(new_resource.location)
     download_retries new_resource.download_retries
   end
 
