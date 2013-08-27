@@ -27,8 +27,8 @@ class Chef
       #
       # @return [String] the version number that latest resolves to or the passed in value
       def get_actual_version(coordinates)
-        version = coordinates.split(':')[3]
-        if Chef::Artifact.latest?(version)
+        artifact = NexusCli::Artifact.new(coordinates)
+        if Chef::Artifact.latest?(artifact.version)
           REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//version"].text
         else
           version

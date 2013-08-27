@@ -57,9 +57,14 @@ def load_current_resource
 
     @nexus_configuration_object = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration_object)
-    group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
-    @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, extension, @new_resource.version].join(':'))
-    @artifact_location = [group_id, artifact_id, extension, artifact_version].join(':')
+    coordinates = [@new_resource.artifact_location, @new_resource.version].join(':')
+    @artifact_version = nexus_connection.get_actual_version(coordinates)
+    artifact = NexusCli::Artifact.new(coordinates)
+    if artifact.classifier.nil?
+      @artifact_location = "#{artifact.group_id}:#{artifact.artifact_id}:#{artifact.extension}:#{artifact_version}"
+    else
+      @artifact_location = "#{artifact.group_id}:#{artifact.artifact_id}:#{artifact.extension}:#{artifact.classifier}:#{artifact_version}"
+    end
   elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
       case node['platform_family']
@@ -266,11 +271,8 @@ end
 # @return [String] the artifacts filename
 def artifact_filename
   if Chef::Artifact.from_nexus?(new_resource.artifact_location)
-    group_id, artifact_id, extension, version = artifact_location.split(":")
-    unless extension
-      extension = "jar"
-    end
-    "#{artifact_id}-#{version}.#{extension}"
+    artifact = NexusCli::Artifact.new(artifact_location)
+    artifact.file_name
   else
     ::File.basename(artifact_location)
   end
