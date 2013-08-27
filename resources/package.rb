@@ -28,3 +28,4 @@ attribute :checksum, :kind_of  => String
 attribute :owner, :kind_of => String, :regex => Chef::Config[:user_valid_regex], :default => 'root'
 attribute :group, :kind_of => String, :regex => Chef::Config[:user_valid_regex], :default => 'root'
 attribute :download_retries, :kind_of => Integer, :default => 1
+attribute :nexus_configuration, :kind_of => Chef::Artifact::NexusConfiguration, :default => Chef::Artifact::NexusConfiguration.from_data_bag
