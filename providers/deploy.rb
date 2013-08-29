@@ -46,10 +46,6 @@ def load_current_resource
     Chef::Application.fatal! "The name attribute for this resource is significant, and there cannot be whitespace. The preferred usage is to use the name of the artifact."
   end
 
-  chef_gem "activesupport" do
-    version "3.2.11"
-  end
-
   if Chef::Artifact.from_nexus?(@new_resource.artifact_location)
     chef_gem "nexus_cli" do
       version "4.0.2"
@@ -385,8 +381,6 @@ private
   # 
   # @return [Boolean]
   def has_manifest_changed?
-    require 'active_support/core_ext/hash'
-
     Chef::Log.debug "artifact_deploy[has_manifest_changed?] Loading manifest.yaml file from directory: #{release_path}"
     begin
       saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
