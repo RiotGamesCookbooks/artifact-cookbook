@@ -1,3 +1,12 @@
+## v1.10.0
+
+* [#90] Adds support for all regions to S3
+* [#89] New syntax for cusomizable Nexus configurations - see README
+* [#91] Changes to logging to be less verbose - run in DEBUG to see all the old messaging
+* [#93] Add customizable Nexus configuration support to artifact_package resource
+* [#94] Fix skip_manifest_check and failed deploy race condition
+* [#95] Remove activesupport dependency, bringing the method internal
+
 ## v1.9.0
 
 * [#85] Allows basic auth to be used for nexus artifact retrieval.
