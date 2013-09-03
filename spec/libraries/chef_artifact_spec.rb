@@ -4,7 +4,8 @@ describe Chef::Artifact do
   let(:node) { double('node', chef_environment: "default") }
   describe ":data_bag_config_for" do
     subject { data_bag_config_for }
-    let(:data_bag_config_for) { described_class.data_bag_config_for(node, source) }
+    let(:environment) { "default" }
+    let(:data_bag_config_for) { described_class.data_bag_config_for(environment, source) }
     let(:source) { Chef::Artifact::DATA_BAG_NEXUS }
 
     context "when we are using chef-solo" do
@@ -105,7 +106,8 @@ describe Chef::Artifact do
 
   describe ":encrypted_data_bag_for" do
     subject { encrypted_data_bag_for }
-    let(:encrypted_data_bag_for) { described_class.encrypted_data_bag_for(node, data_bag) }
+    let(:environment) { "default" }
+    let(:encrypted_data_bag_for) { described_class.encrypted_data_bag_for(environment, data_bag) }
     let(:data_bag) { Chef::Artifact::DATA_BAG }
     let(:data_bag_item) { {name: "Test", value: 1} }
 
