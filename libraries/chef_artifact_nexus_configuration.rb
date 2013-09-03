@@ -3,7 +3,13 @@ class Chef
     class NexusConfiguration
       class << self
         def from_data_bag
-          config = Chef::Artifact.data_bag_config_for(nil, Chef::Artifact::DATA_BAG_NEXUS)
+          environment = unless Chef::Config[:solo]
+            Chef::Node.load(Chef::Config[:node_name]).chef_environment
+          else
+            nil
+          end
+
+          config = Chef::Artifact.data_bag_config_for(environment, Chef::Artifact::DATA_BAG_NEXUS)
           if config.nil? || config.empty?
             Chef::Log.debug "No Data Bag found for NexusConfiguration."
             nil
