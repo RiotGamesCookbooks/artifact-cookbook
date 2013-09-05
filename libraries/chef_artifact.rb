@@ -60,15 +60,15 @@ class Chef
       # Loads the encrypted data bag item and returns credentials
       # for the environment or for a default key.
       #
-      # @param  node [Chef::Node] the Chef node
+      # @param  environment [String] the environment
       # @param  source [String] the deployment source to load configuration for
       # 
       # @return [Chef::DataBagItem] the data bag item
-      def data_bag_config_for(node, source)
+      def data_bag_config_for(environment, source)
         data_bag_item = if Chef::Config[:solo]
           Chef::DataBagItem.load(DATA_BAG, WILDCARD_DATABAG_ITEM) rescue {}
         else
-          encrypted_data_bag_for(node, DATA_BAG)
+          encrypted_data_bag_for(environment, DATA_BAG)
         end
 
         # support new format
@@ -90,7 +90,7 @@ class Chef
       def retrieve_from_s3(node, source_file, destination_file)
         begin
           require 'aws-sdk'
-          config = data_bag_config_for(node, DATA_BAG_AWS)
+          config = data_bag_config_for(node.chef_environment, DATA_BAG_AWS)
           s3_endpoint, bucket_name, object_name = parse_s3_url(source_file)
 
           if config.empty?
@@ -222,17 +222,17 @@ class Chef
       # data bag item named for the chef_environment, '_wildcard', or the old 
       # 'nexus' value.
       #
-      # @param  node [Chef::Node] the node
+      # @param  environment [String] the environment
       # @param  data_bag [String] the data bag to load
       # 
       # @return [Chef::Mash] the data bag item in Mash form
-      def encrypted_data_bag_for(node, data_bag)
+      def encrypted_data_bag_for(environment, data_bag)
         @encrypted_data_bags = {} unless @encrypted_data_bags
 
         if encrypted_data_bags[data_bag]
           return get_from_data_bags_cache(data_bag)
         else
-          data_bag_item = encrypted_data_bag_item(data_bag, node.chef_environment)
+          data_bag_item = encrypted_data_bag_item(data_bag, environment)
           data_bag_item ||= encrypted_data_bag_item(data_bag, WILDCARD_DATABAG_ITEM)
           data_bag_item ||= encrypted_data_bag_item(data_bag, "nexus")
           data_bag_item ||= {}
