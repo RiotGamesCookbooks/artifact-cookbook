@@ -1,3 +1,7 @@
+## v1.10.1
+
+* [#98] Pass the environment around fix nil access
+
 ## v1.10.0
 
 * [#90] Adds support for all regions to S3
