@@ -104,7 +104,7 @@ class Chef
           object = get_s3_object(bucket_name, object_name)
 
           Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
-          ::File.open(destination_file, 'w') do |file|
+          ::File.open(destination_file, 'wb') do |file|
             object.read do |chunk|
               file.write(chunk)
             end
