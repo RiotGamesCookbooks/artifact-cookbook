@@ -25,6 +25,11 @@ class Chef
         @url, @repository, @username, @password, @ssl_verify = url, repository, username, password, ssl_verify
       end
 
+      alias_method :inspect_without_masking, :inspect
+      def inspect
+        self.inspect_without_masking.sub(/@password=".*"/, '@password="MASKED"')
+      end
+
       def to_hash
         { 
           'url' => url,

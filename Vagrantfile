@@ -12,9 +12,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
-  config.ssh.max_tries = 40
-  config.ssh.timeout   = 120
-
   config.vm.provision :chef_solo do |chef|
     chef.json = {
       :artifact_test => {
