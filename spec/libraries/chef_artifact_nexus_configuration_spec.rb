@@ -54,4 +54,15 @@ describe Chef::Artifact::NexusConfiguration do
       end
     end
   end
+
+  describe "#inspect" do
+    subject do
+      described_class.new("http://fake-url.com/", "repository", "my-user", "my-pass")
+    end
+    let(:inspect) { subject.inspect }
+
+    it "masks the password instance variable value" do
+      expect(inspect).to match(/@password="MASKED"/)
+    end
+  end
 end
