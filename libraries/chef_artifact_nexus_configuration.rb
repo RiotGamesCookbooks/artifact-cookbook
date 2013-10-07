@@ -23,11 +23,7 @@ class Chef
 
       def initialize(url, repository, username=nil, password=nil, ssl_verify=true)
         @url, @repository, @username, @password = url, repository, username, password
-        if ssl_verify.nil?
-          @ssl_verify = true
-        else
-          @ssl_verify = ssl_verify
-        end
+        @ssl_verify = ssl_verify.nil? || ssl_verify
       end
 
       alias_method :inspect_without_masking, :inspect
