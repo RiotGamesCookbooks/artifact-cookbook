@@ -385,8 +385,10 @@ private
     begin
       saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
     rescue Errno::ENOENT
-      Chef::Log.warn "artifact_deploy[has_manifest_changed?] Cannot load manifest.yaml. It may have been deleted. Deploying."
-      return true
+      unless skip_manifest_check?        
+        Chef::Log.warn "artifact_deploy[has_manifest_changed?] Cannot load manifest.yaml. It may have been deleted. Deploying."
+        return true
+      end
     end
 
     if skip_manifest_check?
