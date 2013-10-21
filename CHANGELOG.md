@@ -1,3 +1,9 @@
+## v.1.10.2
+
+* [#105](https://github.com/RiotGames/artifact-cookbook/pull/105) Fixed an edge case due to skip_manifest_check and actually writing the manifest file.
+* [#101](https://github.com/RiotGames/artifact-cookbook/pull/101) Files downloaded from S3 should now be written using binary mode.
+* [#103](https://github.com/RiotGames/artifact-cookbook/pull/103) When Chef runs fail, your password should not be exposed by the Chef::Artifact::NexusConfiguration object.
+
 ## v1.10.1
 
 * [#98] Pass the environment around fix nil access
