@@ -228,7 +228,7 @@ separate data_bag items:
 To further customize your Nexus usage, you can use the new `nexus_configuration` attribute. To do so, create a new `Chef::Artifact::NexusConfiguration` object, passing it
 the customized parameters - url, repository, username (defaults to nil), password (defaults to nil), ssl_verify (defaults to true). Then pass that object to the `artifact_deploy` resource. For example:
 
-    nexus_configuration_object = Chef::Artifact::NexusConfiguration("http://nexus-url", "snapshots", "username", "password")
+    nexus_configuration_object = Chef::Artifact::NexusConfiguration.new("http://nexus-url", "snapshots", "username", "password")
 
     artifact_deploy "my-artifact" do
       version             "latest"
