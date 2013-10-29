@@ -29,3 +29,4 @@ attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[
 attribute :group, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :download_retries, :kind_of => Integer, :default => 1
 attribute :nexus_configuration, :kind_of => Chef::Artifact::NexusConfiguration, :default => Chef::Artifact::NexusConfiguration.from_data_bag
+attribute :after_download, :kind_of => Proc
