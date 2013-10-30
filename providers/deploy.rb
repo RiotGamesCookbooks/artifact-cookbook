@@ -53,9 +53,10 @@ def load_current_resource
 
     @nexus_configuration_object = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration_object)
-    group_id, artifact_id, extension = @new_resource.artifact_location.split(':')
+    # notice: if the version is supplied in the location, it will be ignored
+    group_id, artifact_id, extension, classifier, version = location_parts(@new_resource.artifact_location)
     @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, extension, @new_resource.version].join(':'))
-    @artifact_location = [group_id, artifact_id, extension, artifact_version].join(':')
+    @artifact_location = [group_id, artifact_id, extension, classifier, artifact_version].compact.join(':')
   elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
       case node['platform_family']
@@ -252,21 +253,23 @@ end
 # value returned by this method will change. If Chef::Artifact.from_nexus?, return the
 # concatination of "artifact_id-version.extension" otherwise return the
 # basename of where the artifact is located.
-# 
+#
 # @example
 #   When: new_resource.artifact_location => "com.artifact:my-artifact:1.0.0:tgz"
 #     artifact_filename => "my-artifact-1.0.0.tgz"
 #   When: new_resource.artifact_location => "http://some-site.com/my-artifact.jar"
 #     artifact_filename => "my-artifact.jar"
-# 
+#
 # @return [String] the artifacts filename
 def artifact_filename
   if Chef::Artifact.from_nexus?(new_resource.artifact_location)
-    group_id, artifact_id, extension, version = artifact_location.split(":")
-    unless extension
-      extension = "jar"
+    group_id, artifact_id, extension, classifier, version = location_parts(new_resource.artifact_location)
+    extension = "jar" unless extension
+    if classifier
+      "#{artifact_id}-#{version}-#{classifier}.#{extension}"
+    else
+      "#{artifact_id}-#{version}.#{extension}"
     end
-    "#{artifact_id}-#{version}.#{extension}"
   else
     ::File.basename(artifact_location)
   end
@@ -330,6 +333,14 @@ end
 private
 
   # A wrapper that adds debug logging for running a recipe_eval on the 
+  def location_parts(location)
+    group_id, artifact_id, extension, classifier, version = location.split(":")
+    unless version
+      version = classifier
+      classifier = nil
+    end
+    [group_id, artifact_id, extension, classifier, version]
+  end
   # numerous Proc attributes defined for this resource.
   # 
   # @param name [Symbol] the name of the proc to execute
