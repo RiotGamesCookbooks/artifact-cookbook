@@ -23,6 +23,8 @@ attr_reader :file_location
 attr_reader :nexus_configuration
 attr_reader :nexus_connection
 
+include Chef::Artifact::Helpers
+
 def load_current_resource
   if Chef::Artifact.from_nexus?(new_resource.location)
     chef_gem "nexus_cli" do
@@ -44,13 +46,13 @@ action :create do
     if Chef::Artifact.from_s3?(file_location)
       unless ::File.exists?(new_resource.name) && checksum_valid?
         Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.name)
-        recipe_eval(&new_resource.after_download)
+        run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
       unless ::File.exists?(new_resource.name) && checksum_valid?
         begin
           nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.name))
-          recipe_eval(&new_resource.after_download)
+          run_proc :after_download
         rescue NexusCli::PermissionsException => e
           msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
           raise Chef::Artifact::ArtifactDownloadError.new(msg)
@@ -105,3 +107,13 @@ def remote_file_resource
     action :nothing
   end
 end
+
+private
+  # A wrapper that calls Chef::Artifact:run_proc
+  #
+  # @param name     [Symbol] the name of the proc to execute
+  #
+  # @return [void]
+  def run_proc(name)
+    execute_run_proc("artifact_file", new_resource, name)
+  end

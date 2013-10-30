@@ -36,7 +36,7 @@ Vagrant.configure("2") do |config|
 
     chef.run_list = [
       "recipe[artifact_test::default]",
-      "recipe[artifact_test::nexus_package]"
+      "recipe[artifact_test::nexus_anon]"
     ]
   end
 end

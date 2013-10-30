@@ -26,14 +26,20 @@ nexus_configuration = Chef::Artifact::NexusConfiguration.new(
   node[:artifact_test][:other_nexus][:url], node[:artifact_test][:other_nexus][:repository]
 )
 
-artifact_deploy "artifact_test" do
-  version node[:artifact_test][:version]
-  artifact_location node[:artifact_test][:location]
-  artifact_checksum node[:artifact_test][:checksum]
+location_parts    = node[:artifact_test][:other_nexus][:location].split(":")
+version  = location_parts[-1]
+type     = location_parts[-2]
+# notice: replacing the extension and adding classifier
+location = node[:artifact_test][:other_nexus][:location].gsub(":#{type}:", ":jar:sources:")
+deploy_to         = "/srv/" + node[:artifact_test][:other_nexus][:app_name]
+
+artifact_deploy deploy_to do
+  after_download Proc.new { Chef::Log.info "*** artifact_deploy after_download was called ***" }
+  version version
+  artifact_location location
   nexus_configuration nexus_configuration
-  deploy_to node[:artifact_test][:deploy_to]
+  deploy_to deploy_to
   owner "artifacts"
   group "artifact"
-
   action :deploy
 end

@@ -36,6 +36,8 @@ attr_reader :artifact_version
 attr_reader :nexus_configuration_object
 attr_reader :nexus_connection
 
+include Chef::Artifact::Helpers
+
 def load_current_resource
   if Chef::Artifact.latest?(@new_resource.version) && Chef::Artifact.from_http?(@new_resource.artifact_location)
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
@@ -331,8 +333,6 @@ def delete_previous_versions!
 end
 
 private
-
-  # A wrapper that adds debug logging for running a recipe_eval on the 
   def location_parts(location)
     group_id, artifact_id, extension, classifier, version = location.split(":")
     unless version
@@ -341,27 +341,19 @@ private
     end
     [group_id, artifact_id, extension, classifier, version]
   end
-  # numerous Proc attributes defined for this resource.
-  # 
-  # @param name [Symbol] the name of the proc to execute
-  # 
+
+  # A wrapper that calls Chef::Artifact:run_proc
+  #
+  # @param name     [Symbol] the name of the proc to execute
+  #
   # @return [void]
   def run_proc(name)
-    proc = new_resource.send(name)
-    proc_name = name.to_s
-    Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Determining whether to execute #{proc_name} proc."
-    if proc
-      Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Beginning execution of #{proc_name} proc."
-      recipe_eval(&proc)
-      Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Ending execution of #{proc_name} proc."
-    else
-      Chef::Log.debug "artifact_deploy[run_proc::#{proc_name}] Skipping execution of #{proc_name} proc because it was not defined."
-    end
+    execute_run_proc("artifact_deploy", new_resource, name)
   end
 
   # Checks the various cases of whether an artifact has or has not been installed. If the artifact
   # has been installed let #has_manifest_changed? determine the return value.
-  # 
+  #
   # @return [Boolean]
   def manifest_differences?
     if new_resource.force
