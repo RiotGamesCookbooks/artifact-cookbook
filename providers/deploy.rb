@@ -563,11 +563,12 @@ private
   end
 
   # Defines a resource call for downloading the remote artifact.
-  # 
+  #
   # @return [void]
   def retrieve_from_http
     artifact_file cached_tar_path do
       location new_resource.artifact_location
+      after_download new_resource.after_download
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
@@ -576,11 +577,12 @@ private
   end
 
   # Defines a artifact_file resource call to download an artifact from Nexus.
-  # 
+  #
   # @return [void]
   def retrieve_from_nexus
     artifact_file cached_tar_path do
       location artifact_location
+      after_download new_resource.after_download
       owner new_resource.owner
       group new_resource.group
       nexus_configuration nexus_configuration_object
@@ -594,6 +596,7 @@ private
   def retrieve_from_s3
     artifact_file cached_tar_path do
       location new_resource.artifact_location
+      after_download new_resource.after_download
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
