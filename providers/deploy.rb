@@ -4,7 +4,7 @@
 #
 # Author:: Jamie Winsor (<jamie@vialstudios.com>)
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,10 +55,14 @@ def load_current_resource
 
     @nexus_configuration_object = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration_object)
-    # notice: if the version is supplied in the location, it will be ignored
-    group_id, artifact_id, extension, classifier, version = location_parts(@new_resource.artifact_location)
-    @artifact_version  = nexus_connection.get_actual_version([group_id, artifact_id, extension, @new_resource.version].join(':'))
-    @artifact_location = [group_id, artifact_id, extension, classifier, artifact_version].compact.join(':')
+    coordinates = [@new_resource.artifact_location, @new_resource.version].join(':')
+    @artifact_version = nexus_connection.get_actual_version(coordinates)
+    artifact = NexusCli::Artifact.new(coordinates)
+    if artifact.classifier.nil?
+      @artifact_location = "#{artifact.group_id}:#{artifact.artifact_id}:#{artifact.extension}:#{artifact_version}"
+    else
+      @artifact_location = "#{artifact.group_id}:#{artifact.artifact_id}:#{artifact.extension}:#{artifact.classifier}:#{artifact_version}"
+    end
   elsif Chef::Artifact.from_s3?(@new_resource.artifact_location)
     unless Chef::Artifact.windows?
       case node['platform_family']
@@ -151,7 +155,7 @@ action :deploy do
         only_if {Chef::Artifact.symlink?(new_resource.current_path) && symlink_changing}
       end
     end
-    
+
     link new_resource.current_path do
       to release_path
       owner new_resource.owner
@@ -175,7 +179,7 @@ end
 # Extracts the artifact defined in the resource call. Handles
 # a variety of 'tar' based files (tar.gz, tgz, tar, tar.bz2, tbz)
 # and a few 'zip' based files (zip, war, jar).
-# 
+#
 # @return [void]
 def extract_artifact!
   recipe_eval do
@@ -208,7 +212,7 @@ def extract_artifact!
     end
 
     # Working with artifacts that are packaged under an extra top level directory
-    # can be cumbersome. Remove it if a top level directory exists and the user 
+    # can be cumbersome. Remove it if a top level directory exists and the user
     # says to
     release_pathname = Pathname.new(release_path)
     ruby_block "remove top level" do
@@ -228,10 +232,10 @@ end
 
 # Copies the artifact from its cached path to its release path. The cached path is
 # the configured Chef::Config[:file_cache_path]/artifact_deploys
-# 
+#
 # @example
 #   cp /tmp/vagrant-chef-1/artifact_deploys/artifact_test/1.0.0/my-artifact /srv/artifact_test/releases/1.0.0
-# 
+#
 # @return [void]
 def copy_artifact
   recipe_eval do
@@ -244,7 +248,7 @@ def copy_artifact
 end
 
 # Returns the file path to the cached artifact the resource is installing.
-# 
+#
 # @return [String] the path to the cached artifact
 def cached_tar_path
   ::File.join(artifact_cache_version_path, artifact_filename)
@@ -265,13 +269,8 @@ end
 # @return [String] the artifacts filename
 def artifact_filename
   if Chef::Artifact.from_nexus?(new_resource.artifact_location)
-    group_id, artifact_id, extension, classifier, version = location_parts(new_resource.artifact_location)
-    extension = "jar" unless extension
-    if classifier
-      "#{artifact_id}-#{version}-#{classifier}.#{extension}"
-    else
-      "#{artifact_id}-#{version}.#{extension}"
-    end
+    artifact = NexusCli::Artifact.new(artifact_location)
+    artifact.file_name
   else
     ::File.basename(artifact_location)
   end
@@ -281,14 +280,14 @@ end
 # as the one to be installed, we are forcing, and remove_on_force is
 # set. Only bad people will use this.
 def delete_current_if_forcing!
-  return unless @new_resource.force 
-  return unless remove_on_force? 
+  return unless @new_resource.force
+  return unless remove_on_force?
   return unless get_current_release_version == artifact_version || previous_version_numbers.include?(artifact_version)
 
   recipe_eval do
     log "artifact_deploy[delete_current_if_forcing!] #{artifact_version} deleted because remove_on_force is true" do
       level :info
-    end 
+    end
 
     directory ::File.join(new_resource.deploy_to, 'releases', artifact_version) do
       recursive true
@@ -297,7 +296,7 @@ def delete_current_if_forcing!
   end
 end
 
-# Deletes released versions of the artifact when the number of 
+# Deletes released versions of the artifact when the number of
 # released versions exceeds the :keep value.
 def delete_previous_versions!
   recipe_eval do
@@ -381,14 +380,14 @@ private
   # Loads the saved manifest.yaml file and generates a new, current manifest. The
   # saved manifest is then parsed through looking for files that may have been deleted,
   # added, or modified.
-  # 
+  #
   # @return [Boolean]
   def has_manifest_changed?
     Chef::Log.debug "artifact_deploy[has_manifest_changed?] Loading manifest.yaml file from directory: #{release_path}"
     begin
       saved_manifest = YAML.load_file(::File.join(release_path, "manifest.yaml"))
     rescue Errno::ENOENT
-      unless skip_manifest_check?        
+      unless skip_manifest_check?
         Chef::Log.warn "artifact_deploy[has_manifest_changed?] Cannot load manifest.yaml. It may have been deleted. Deploying."
         return true
       end
@@ -416,7 +415,7 @@ private
   # the currently configured resource. Returns true when the current symlink will
   # be changed to a different release of the artifact at the end of the resource
   # call.
-  # 
+  #
   # @return [Boolean]
   def current_symlink_changing?
     get_current_release_version != ::File.basename(release_path)
@@ -444,12 +443,12 @@ private
 
   # Returns a path to the artifact being installed by
   # the configured resource.
-  # 
+  #
   # @example
-  #   When: 
+  #   When:
   #     new_resource.deploy_to = "/srv/artifact_test" and artifact_version = "1.0.0"
   #       get_release_path => "/srv/artifact_test/releases/1.0.0"
-  # 
+  #
   # @return [String] the artifacts release path
   def get_release_path
     ::File.join(new_resource.deploy_to, "releases", artifact_version)
@@ -458,7 +457,7 @@ private
   # Searches the releases directory and returns an Array of version folders. After
   # rejecting the current release version from the Array, the array is sorted by mtime
   # and returned.
-  # 
+  #
   # @return [Array] the mtime sorted array of currently installed versions
   def get_previous_version_paths
     versions = Dir[::File.join(new_resource.deploy_to, "releases", '**')].collect do |v|
@@ -470,9 +469,9 @@ private
     versions.sort_by(&:mtime)
   end
 
-  # Convenience method for returning just the version numbers of 
+  # Convenience method for returning just the version numbers of
   # the currently installed versions of the artifact.
-  # 
+  #
   # @return [Array] the currently installed version numbers
   def get_previous_version_numbers
     previous_version_paths.collect { |version| version.basename.to_s}
@@ -480,7 +479,7 @@ private
 
   # Creates directories and symlinks as defined by the symlinks
   # attribute of the resource.
-  # 
+  #
   # @return [void]
   def symlink_it_up!
     recipe_eval do
@@ -504,7 +503,7 @@ private
 
   # Creates directories that are necessary for installing
   # the artifact.
-  # 
+  #
   # @return [void]
   def setup_deploy_directories!
     recipe_eval do
@@ -522,7 +521,7 @@ private
 
   # Creates directories that are defined in the shared_directories
   # attribute of the resource.
-  # 
+  #
   # @return [void]
   def setup_shared_directories!
     recipe_eval do
@@ -540,7 +539,7 @@ private
 
   # Retrieves the configured artifact based on the
   # artifact_location instance variable.
-  # 
+  #
   # @return [void]
   def retrieve_artifact!
     recipe_eval do
@@ -605,7 +604,7 @@ private
   end
 
   # Defines a resource call for a file already on the file system.
-  # 
+  #
   # @return [void]
   def retrieve_from_local
     execute "copy artifact from #{new_resource.artifact_location} to #{cached_tar_path}" do
@@ -617,11 +616,11 @@ private
   end
 
   # Generates a manifest for all the files underneath the given files_path. SHA1 digests will be
-  # generated for all files under the given files_path with the exception of directories and the 
+  # generated for all files under the given files_path with the exception of directories and the
   # manifest.yaml file itself.
-  # 
+  #
   # @param  files_path [String] a path to the files that a manfiest will be generated for
-  # 
+  #
   # @return [Hash] a mapping of file_path => SHA1 of that file
   def generate_manifest(files_path)
     Chef::Log.debug "artifact_deploy[generate_manifest] Generating manifest for files in #{files_path}"
@@ -634,7 +633,7 @@ private
 
   # Generates a manfiest Hash for the files under the release_path and
   # writes a YAML dump of the created Hash to manifest_file.
-  # 
+  #
   # @return [String] a String of the YAML dumped to the manifest.yaml file
   def write_manifest
     manifest = generate_manifest(release_path)

@@ -3,7 +3,7 @@
 # Recipe:: nexus_anon
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,10 +27,10 @@ nexus_configuration = Chef::Artifact::NexusConfiguration.new(
 )
 
 location_parts    = node[:artifact_test][:other_nexus][:location].split(":")
-version  = location_parts[-1]
-type     = location_parts[-2]
+version           = location_parts[-1]
+type              = location_parts[-2]
 # notice: replacing the extension and adding classifier
-location = node[:artifact_test][:other_nexus][:location].gsub(":#{type}:", ":jar:sources:")
+location = node[:artifact_test][:other_nexus][:location].gsub(":#{type}:#{version}", ":jar:sources")
 deploy_to         = "/srv/" + node[:artifact_test][:other_nexus][:app_name]
 
 artifact_deploy deploy_to do
