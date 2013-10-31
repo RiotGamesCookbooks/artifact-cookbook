@@ -60,6 +60,7 @@ action :install do
     group new_resource.group
     nexus_configuration nexus_configuration_object if Chef::Artifact.from_nexus?(new_resource.location)
     download_retries new_resource.download_retries
+    after_download new_resource.after_download
   end
 
   package new_resource.name do

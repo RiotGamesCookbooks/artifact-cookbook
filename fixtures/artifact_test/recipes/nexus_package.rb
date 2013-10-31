@@ -1,8 +1,8 @@
 #
 # Cookbook Name:: artifact_test
-# Recipe:: nexus_anon
+# Recipe:: nexus_package
 #
-# Author:: Kyle Allan (<kallan@riotgames.com>)
+# Author:: Aaron Feng (<aaron.feng@riotgames.com>)
 #
 # Copyright 2013, Riot Games
 #
@@ -26,20 +26,34 @@ nexus_configuration = Chef::Artifact::NexusConfiguration.new(
   node[:artifact_test][:other_nexus][:url], node[:artifact_test][:other_nexus][:repository]
 )
 
-location_parts    = node[:artifact_test][:other_nexus][:location].split(":")
-version           = location_parts[-1]
-type              = location_parts[-2]
-# notice: replacing the extension and adding classifier
-location = node[:artifact_test][:other_nexus][:location].gsub(":#{type}:#{version}", ":jar:sources")
-deploy_to         = "/srv/" + node[:artifact_test][:other_nexus][:app_name]
+after_download_prc = Proc.new {
+  Chef::Log.info "*** after download proc was executed! ***"
+}
 
-artifact_deploy deploy_to do
-  after_download Proc.new { Chef::Log.info "*** artifact_deploy after_download was called ***" }
-  version version
-  artifact_location location
+# make sure it works without after_download proc
+artifact_package "without after download proc" do
+  location node[:artifact_test][:other_nexus][:location]
   nexus_configuration nexus_configuration
-  deploy_to deploy_to
   owner "artifacts"
   group "artifact"
-  action :deploy
+  action :install
 end
+
+rpm_package node[:artifact_test][:other_nexus][:app_name] do
+  action :remove
+end
+
+file "/var/chef/cache/artifact_packages/#{node[:artifact_test][:other_nexus][:rpm_name]}" do
+  action :delete
+end
+
+# make sure it works with after_download proc
+artifact_package "with after download proc" do
+  nexus_configuration nexus_configuration
+  after_download after_download_prc
+  location node[:artifact_test][:other_nexus][:location]
+  owner "artifacts"
+  group "artifact"
+  action :install
+end
+

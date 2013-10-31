@@ -50,6 +50,7 @@ attribute :after_migrate, :kind_of      => Proc
 attribute :migrate, :kind_of            => Proc
 attribute :restart, :kind_of            => Proc
 attribute :after_deploy, :kind_of       => Proc
+attribute :after_download, :kind_of     => Proc
 attribute :remove_top_level_directory, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :skip_manifest_check, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :remove_on_force, :kind_of => [ TrueClass, FalseClass ], :default => false
