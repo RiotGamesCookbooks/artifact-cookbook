@@ -11,4 +11,4 @@ supports "fedora"
 supports "ubuntu"
 supports "windows", ">= 6.0"
 
-depends "windows", "~> 1.8.0"
+depends "windows"
