@@ -18,15 +18,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+require 'chef/mixin/create_path'
 
 attr_reader :file_location
 attr_reader :nexus_configuration
 attr_reader :nexus_connection
 
 include Chef::Artifact::Helpers
+include Chef::Mixin::CreatePath
 
 def load_current_resource
+  create_cache_path
   if Chef::Artifact.from_nexus?(new_resource.location)
+
     chef_gem "nexus_cli" do
       version "4.0.2"
     end
@@ -124,11 +128,28 @@ private
     execute_run_proc("artifact_file", new_resource, name)
   end
 
-  # Returns the path to a resource's checksum file
+  # Scrubs the file_location and returns the path to 
+  # the resource's checksum file.
   #
   # @return [String]
   def cached_checksum
-    ::File.join(Chef::Config[:file_cache_path], "#{::File.basename(new_resource.name)}-checksum")
+    scrubbed_uri = file_location.gsub(/\W/, '_')[0..63]
+    uri_md5 = Digest::MD5.hexdigest(file_location)
+    ::File.join(cache_path, "#{scrubbed_uri}-#{uri_md5}")
+  end
+
+  # Creates a the cache path if it does not already exist
+  #
+  # @return [String] the created path
+  def create_cache_path
+    create_path(cache_path)
+  end
+
+  # Returns the artifact_file cache path for cached checksums
+  #
+  # @return [String]
+  def cache_path
+    ::File.join(Chef::Config[:file_cache_path], "artifact_file")
   end
 
   # Returns true when the cached_checksum file exists, false otherwise
