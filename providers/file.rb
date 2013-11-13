@@ -62,7 +62,7 @@ action :create do
       remote_file_resource.run_action(:create)
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
-    write_checksum
+    write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
       retries -= 1
@@ -81,10 +81,13 @@ end
 #   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
-  if Chef::Artifact.from_nexus?(file_location) && !cached_checksum_exists?
+
+  if cached_checksum_exists?
+    return Digest::SHA256.file(new_resource.name).hexdigest == read_checksum
+  end
+
+  if Chef::Artifact.from_nexus?(file_location)
     Digest::SHA1.file(new_resource.name).hexdigest == nexus_connection.get_artifact_sha(file_location)
-  elsif Chef::Artifact.from_nexus?(file_location) && cached_checksum_exists?
-    Digest::SHA256.file(new_resource.name).hexdigest == ::File.read(cached_checksum).strip
   else
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
@@ -141,4 +144,11 @@ private
   # @return [NilClass]
   def write_checksum
     ::File.open(cached_checksum, "w") { |file| file.puts Digest::SHA256.file(new_resource.name).hexdigest }
+  end
+
+  # Reads the cached_checksum
+  #
+  # @return [String]
+  def read_checksum
+    ::File.read(cached_checksum).strip
   end
