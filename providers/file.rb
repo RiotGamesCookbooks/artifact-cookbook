@@ -62,6 +62,7 @@ action :create do
       remote_file_resource.run_action(:create)
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
+    write_checksum
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
       retries -= 1
@@ -80,8 +81,10 @@ end
 #   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
-  if Chef::Artifact.from_nexus?(file_location)
+  if Chef::Artifact.from_nexus?(file_location) && !cached_checksum_exists?
     Digest::SHA1.file(new_resource.name).hexdigest == nexus_connection.get_artifact_sha(file_location)
+  elsif Chef::Artifact.from_nexus?(file_location) && cached_checksum_exists?
+    Digest::SHA256.file(new_resource.name).hexdigest == ::File.read(cached_checksum).strip
   else
     if new_resource.checksum
       Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
@@ -116,4 +119,26 @@ private
   # @return [void]
   def run_proc(name)
     execute_run_proc("artifact_file", new_resource, name)
+  end
+
+  # Returns the path to a resource's checksum file
+  #
+  # @return [String]
+  def cached_checksum
+    ::File.join(Chef::Config[:file_cache_path], "#{::File.basename(new_resource.name)}-checksum")
+  end
+
+  # Returns true when the cached_checksum file exists, false otherwise
+  #
+  # @return [Boolean]
+  def cached_checksum_exists?
+    ::File.exists?(cached_checksum)
+  end
+
+  # Writes a file to file_cache_path. This file contains a SHA256 digest of the 
+  # artifact file. Returns the result of the file.puts command, which will be nil.
+  #
+  # @return [NilClass]
+  def write_checksum
+    ::File.open(cached_checksum, "w") { |file| file.puts Digest::SHA256.file(new_resource.name).hexdigest }
   end
