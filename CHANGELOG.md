@@ -1,3 +1,8 @@
+## v.1.11.1
+
+* [#109](https://github.com/RiotGames/artifact-cookbook/pull/109) Artifact file should write a checksum file, similar to remote_file for idempotency.
+* [#108](https://github.com/RiotGames/artifact-cookbook/pull/108) Allow other cookbooks to lock down the windows cookbook dependency.
+
 ## v.1.11.0
 
 * [#107](https://github.com/RiotGames/artifact-cookbook/pull/107) Added a new Proc attribute after_download, which executes only after downloading an artifact.
