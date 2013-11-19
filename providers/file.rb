@@ -18,15 +18,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+require 'chef/mixin/create_path'
 
 attr_reader :file_location
 attr_reader :nexus_configuration
 attr_reader :nexus_connection
 
 include Chef::Artifact::Helpers
+include Chef::Mixin::CreatePath
 
 def load_current_resource
+  create_cache_path
   if Chef::Artifact.from_nexus?(new_resource.location)
+
     chef_gem "nexus_cli" do
       version "4.0.2"
     end
@@ -62,6 +66,7 @@ action :create do
       remote_file_resource.run_action(:create)
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
+    write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
       retries -= 1
@@ -80,6 +85,11 @@ end
 #   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
+
+  if cached_checksum_exists?
+    return Digest::SHA256.file(new_resource.name).hexdigest == read_checksum
+  end
+
   if Chef::Artifact.from_nexus?(file_location)
     Digest::SHA1.file(new_resource.name).hexdigest == nexus_connection.get_artifact_sha(file_location)
   else
@@ -116,4 +126,50 @@ private
   # @return [void]
   def run_proc(name)
     execute_run_proc("artifact_file", new_resource, name)
+  end
+
+  # Scrubs the file_location and returns the path to 
+  # the resource's checksum file.
+  #
+  # @return [String]
+  def cached_checksum
+    scrubbed_uri = file_location.gsub(/\W/, '_')[0..63]
+    uri_md5 = Digest::MD5.hexdigest(file_location)
+    ::File.join(cache_path, "#{scrubbed_uri}-#{uri_md5}")
+  end
+
+  # Creates a the cache path if it does not already exist
+  #
+  # @return [String] the created path
+  def create_cache_path
+    create_path(cache_path)
+  end
+
+  # Returns the artifact_file cache path for cached checksums
+  #
+  # @return [String]
+  def cache_path
+    ::File.join(Chef::Config[:file_cache_path], "artifact_file")
+  end
+
+  # Returns true when the cached_checksum file exists, false otherwise
+  #
+  # @return [Boolean]
+  def cached_checksum_exists?
+    ::File.exists?(cached_checksum)
+  end
+
+  # Writes a file to file_cache_path. This file contains a SHA256 digest of the 
+  # artifact file. Returns the result of the file.puts command, which will be nil.
+  #
+  # @return [NilClass]
+  def write_checksum
+    ::File.open(cached_checksum, "w") { |file| file.puts Digest::SHA256.file(new_resource.name).hexdigest }
+  end
+
+  # Reads the cached_checksum
+  #
+  # @return [String]
+  def read_checksum
+    ::File.read(cached_checksum).strip
   end
