@@ -82,7 +82,7 @@ def load_current_resource
     end
 
     chef_gem "aws-sdk" do
-      version "1.11.0"
+      version "1.29.0"
     end
 
     @artifact_version = @new_resource.version
