@@ -14,7 +14,7 @@ class Chef
             Chef::Log.debug "No Data Bag found for NexusConfiguration."
             nil
           else
-            new(config['url'], config['repository'], config['username'], config['password'])
+            new(config['url'], config['repository'], config['username'], config['password'], config['ssl_verify'])
           end
         end
       end
@@ -22,7 +22,8 @@ class Chef
       attr_accessor :url, :repository, :username, :password, :ssl_verify
 
       def initialize(url, repository, username=nil, password=nil, ssl_verify=true)
-        @url, @repository, @username, @password, @ssl_verify = url, repository, username, password, ssl_verify
+        @url, @repository, @username, @password = url, repository, username, password
+        @ssl_verify = ssl_verify.nil? || ssl_verify
       end
 
       alias_method :inspect_without_masking, :inspect
