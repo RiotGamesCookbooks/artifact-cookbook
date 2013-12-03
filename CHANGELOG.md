@@ -1,3 +1,7 @@
+## v.1.11.2
+
+* [#111](https://github.com/RiotGames/artifact-cookbook/pull/111) Fix a bug in artifact_file and installing the aws-sdk gem.
+
 ## v.1.11.1
 
 * [#109](https://github.com/RiotGames/artifact-cookbook/pull/109) Artifact file should write a checksum file, similar to remote_file for idempotency.
