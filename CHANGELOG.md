@@ -1,3 +1,7 @@
+## v.1.11.3
+
+* [#104](https://github.com/RiotGames/artifact-cookbook/pull/104) Allow ssl_verify to exist in the data bag and be honored
+
 ## v.1.11.2
 
 * [#111](https://github.com/RiotGames/artifact-cookbook/pull/111) Fix a bug in artifact_file and installing the aws-sdk gem.
