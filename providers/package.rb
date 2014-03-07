@@ -36,7 +36,7 @@ def load_current_resource
   else
     sha = Digest::SHA1.hexdigest new_resource.location
     @extension = new_resource.location.match(/[:\.]([0-9a-z]+)$/i)[1]
-    @file_name = "#{new_resource.name}-#{sha}.#{ext}"
+    @file_name = "#{new_resource.name}-#{sha}.#{@extension}"
   end
   @current_resource = Chef::Resource::ArtifactPackage.new(@new_resource.name)
   @current_resource
