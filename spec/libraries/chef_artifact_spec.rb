@@ -206,8 +206,8 @@ describe Chef::Artifact do
   end
 
   describe ":snapshot?" do
-    specify { described_class.latest?('1.0.0-SNAPSHOT').should eq(true) }
-    specify { described_class.latest?('3.0.1').should eq(false) }
+    specify { described_class.snapshot?('1.0.0-SNAPSHOT').should eq(true) }
+    specify { described_class.snapshot?('3.0.1').should eq(false) }
   end
 
   describe ":get_s3_object" do
