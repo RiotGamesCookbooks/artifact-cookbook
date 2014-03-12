@@ -187,8 +187,8 @@ def extract_artifact!
     when /gz|tgz|tar|bz2|tbz/
       execute "extract_artifact!" do
         command "tar xf #{cached_tar_path} -C #{release_path}"
-        user new_resource.owner
-        group new_resource.group
+        user new_resource.owner unless Chef::Artifact.windows?
+        group new_resource.group unless Chef::Artifact.windows?
         retries 2
       end
     when /zip|war|jar/
@@ -609,8 +609,8 @@ private
   def retrieve_from_local
     execute "copy artifact from #{new_resource.artifact_location} to #{cached_tar_path}" do
       command Chef::Artifact.copy_command_for(new_resource.artifact_location, cached_tar_path)
-      user    new_resource.owner
-      group   new_resource.group
+      user    new_resource.owner unless Chef::Artifact.windows?
+      group   new_resource.group unless Chef::Artifact.windows?
       only_if { !::File.exists?(cached_tar_path) || !FileUtils.compare_file(new_resource.artifact_location, cached_tar_path) }
     end
   end
