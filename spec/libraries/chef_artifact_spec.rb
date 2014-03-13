@@ -205,6 +205,11 @@ describe Chef::Artifact do
     specify { described_class.latest?('3.0.1').should eq(false) }
   end
 
+  describe ":snapshot?" do
+    specify { described_class.snapshot?('1.0.0-SNAPSHOT').should eq(true) }
+    specify { described_class.snapshot?('3.0.1').should eq(false) }
+  end
+
   describe ":get_s3_object" do
     require 'aws-sdk'
     AWS.stub!
@@ -276,7 +281,7 @@ describe Chef::Artifact do
         Chef::Config.stub(:[]).and_return({solo: true})
         Chef::DataBagItem.stub(:load).and_return(data_bag_item)
         described_class.should_receive(:get_s3_object).with("my-bucket", "my-file.tar.gz").and_return(mock_s3_object)
-        File.should_receive(:open).with("filename", "w").and_yield(mock_output_file)
+        File.should_receive(:open).with("filename", "wb").and_yield(mock_output_file)
       end
 
       it "configures AWS correct and reads the file" do
@@ -299,7 +304,7 @@ describe Chef::Artifact do
         Chef::Config.stub(:[]).and_return({solo: true})
         Chef::DataBagItem.stub(:load).and_return(data_bag_item)
         described_class.should_receive(:get_s3_object).with("my-bucket", "my-file.tar.gz").and_return(mock_s3_object)
-        File.should_receive(:open).with("filename", "w").and_yield(mock_output_file)
+        File.should_receive(:open).with("filename", "wb").and_yield(mock_output_file)
       end
 
       it "configures AWS correct and reads the file" do

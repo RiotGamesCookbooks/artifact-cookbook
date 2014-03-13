@@ -200,6 +200,17 @@ class Chef
         version.casecmp("latest") == 0
       end
 
+      # Convenience metho for determining whether a version is a snapshot
+      # version.
+      #
+      # @param version [String] the version of the configured artifact to check
+      #
+      # @return [Boolean] true if the version ends with "-SNAPSHOT" (case
+      # sensitive)
+      def snapshot?(version)
+        version.end_with?("-SNAPSHOT")
+      end
+
       # Returns the currently deployed version of an artifact given that artifacts
       # installation directory by reading what directory the 'current' symlink
       # points to.
