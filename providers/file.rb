@@ -43,6 +43,7 @@ def load_current_resource
     end
   end
   @file_location = new_resource.location
+  @file_path = new_resource.path
 
   @current_resource = Chef::Resource::ArtifactFile.new(@new_resource.name)
   @current_resource
@@ -52,14 +53,14 @@ action :create do
   retries = new_resource.download_retries
   begin
     if Chef::Artifact.from_s3?(file_location)
-      unless ::File.exists?(new_resource.name) && checksum_valid?
-        Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.name)
+      unless ::File.exists?(new_resource.path) && checksum_valid?
+        Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.path)
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
-      unless ::File.exists?(new_resource.name) && checksum_valid?
+      unless ::File.exists?(new_resource.path) && checksum_valid?
         begin
-          nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.name))
+          nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
           run_proc :after_download
         rescue NexusCli::PermissionsException => e
           msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
@@ -91,14 +92,14 @@ def checksum_valid?
   require 'digest'
 
   if cached_checksum_exists?
-    return Digest::SHA256.file(new_resource.name).hexdigest == read_checksum
+    return Digest::SHA256.file(new_resource.path).hexdigest == read_checksum
   end
 
   if Chef::Artifact.from_nexus?(file_location)
-    Digest::SHA1.file(new_resource.name).hexdigest == nexus_connection.get_artifact_sha(file_location)
+    Digest::SHA1.file(new_resource.path).hexdigest == nexus_connection.get_artifact_sha(file_location)
   else
     if new_resource.checksum
-      Digest::SHA256.file(new_resource.name).hexdigest == new_resource.checksum
+      Digest::SHA256.file(new_resource.path).hexdigest == new_resource.checksum
     else
       Chef::Log.debug "[artifact_file] No checksum provided for artifact_file, assuming checksum is valid."
       true
@@ -112,7 +113,7 @@ end
 #
 # @return [Chef::Resource::RemoteFile]
 def remote_file_resource
-  @remote_file_resource ||= remote_file new_resource.name do
+  @remote_file_resource ||= remote_file new_resource.path do
     source file_location
     checksum new_resource.checksum
     owner new_resource.owner
@@ -168,7 +169,7 @@ private
   #
   # @return [NilClass]
   def write_checksum
-    ::File.open(cached_checksum, "w") { |file| file.puts Digest::SHA256.file(new_resource.name).hexdigest }
+    ::File.open(cached_checksum, "w") { |file| file.puts Digest::SHA256.file(new_resource.path).hexdigest }
   end
 
   # Reads the cached_checksum
