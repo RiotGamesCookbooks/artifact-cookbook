@@ -59,7 +59,7 @@ action :create do
       end
     elsif Chef::Artifact.from_nexus?(file_location)
     if Chef::Artifact.snapshot?(new_resource.location) || Chef::Artifact.latest?(new_resource.location)
-      Chef::Log.info "Snapshot version specifed - Trying to replace destination filename with artifact metadatas"
+      Chef::Log.info "#{new_resource.name} is snapshot version - Filename is retrieved from metadata, provided name is ignored"
       new_resource.path(dst_filepath)
     end
       unless ::File.exists?(new_resource.path) && checksum_valid?
