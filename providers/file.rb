@@ -58,10 +58,6 @@ action :create do
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
-    if Chef::Artifact.snapshot?(new_resource.location) || Chef::Artifact.latest?(new_resource.location)
-      Chef::Log.info "#{new_resource.name} is snapshot version - Filename is retrieved from metadata, provided name is ignored"
-      new_resource.path(dst_filepath)
-    end
       unless ::File.exists?(new_resource.path) && checksum_valid?
         begin
           nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
@@ -94,6 +90,8 @@ end
 #   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
+
+  snapshot_path()
 
   if cached_checksum_exists?
     return Digest::SHA256.file(new_resource.path).hexdigest == read_checksum
@@ -190,4 +188,16 @@ private
   # @return [String]
   def dst_filepath
     ::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location))
+  end
+
+  # Update filename from Nexus metadata only in case of latest/snapshot version
+  #
+  # @return [NilClass]
+  def snapshot_path
+    if Chef::Artifact.from_nexus?(file_location)
+      if Chef::Artifact.snapshot?(file_location.split(':')[3]) || Chef::Artifact.latest?(file_location.split(':')[3])
+        Chef::Log.info "#{new_resource.name} is snapshot version - Filename is retrieved from metadata, provided name is ignored"
+        new_resource.path(dst_filepath)
+      end
+    end
   end
