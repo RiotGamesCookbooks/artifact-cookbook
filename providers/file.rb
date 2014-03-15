@@ -30,16 +30,9 @@ include Chef::Mixin::CreatePath
 def load_current_resource
   create_cache_path
   if Chef::Artifact.from_nexus?(new_resource.location)
-
     chef_gem "nexus_cli" do
       version "4.0.2"
     end
-
-    if Chef::Artifact.snapshot?(new_resource.location)
-      puts new_resource
-      new_resource.path(dst_filepath)
-    end
-
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
   elsif Chef::Artifact.from_s3?(@new_resource.location)
@@ -63,6 +56,10 @@ action :create do
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
+    if Chef::Artifact.snapshot?(new_resource.location) or Chef::Artifact.latest?(new_resource.location)
+      Chef::Log.info "Snapshot version specifed, trying to replace destination filename from artifact metadatas"
+      new_resource.path(dst_filepath)
+    end
       unless ::File.exists?(new_resource.path) && checksum_valid?
         begin
           nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
@@ -186,9 +183,9 @@ private
 
   # Returns the full file destination path from resource dirname & metadata infos
   # This is only needed when provider is working with unpredictable filenames :
-  # *-SNAPSHOT & LATEST. Provided filename is ignored then.
+  # *-SNAPSHOT & LATEST. Works for Nexus provider only. 
   #
   # @return [String]
   def dst_filepath
-    ::File.join(::File.dirname(new_resource.name), nexus_connection.get_artifact_filename(file_location))
+    ::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location))
   end
