@@ -22,7 +22,7 @@
 actions :create
 default_action :create
 
-attribute :path, :kind_of => String, :name_attribute => true, :required => true
+attribute :path, :kind_of => String, :required => true, :name_attribute => true
 attribute :location, :kind_of => String
 attribute :checksum, :kind_of  => String
 attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
