@@ -35,6 +35,11 @@ def load_current_resource
       version "4.0.2"
     end
 
+    if Chef::Artifact.snapshot?(new_resource.location)
+      puts new_resource
+      new_resource.path(dst_filepath)
+    end
+
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
   elsif Chef::Artifact.from_s3?(@new_resource.location)
@@ -177,4 +182,13 @@ private
   # @return [String]
   def read_checksum
     ::File.read(cached_checksum).strip
+  end
+
+  # Returns the full file destination path from resource dirname & metadata infos
+  # This is only needed when provider is working with unpredictable filenames :
+  # *-SNAPSHOT & LATEST. Provided filename is ignored then.
+  #
+  # @return [String]
+  def dst_filepath
+    ::File.join(::File.dirname(new_resource.name), nexus_connection.get_artifact_filename(file_location))
   end
