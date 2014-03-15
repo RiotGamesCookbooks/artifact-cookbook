@@ -30,9 +30,11 @@ include Chef::Mixin::CreatePath
 def load_current_resource
   create_cache_path
   if Chef::Artifact.from_nexus?(new_resource.location)
+
     chef_gem "nexus_cli" do
       version "4.0.2"
     end
+
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
   elsif Chef::Artifact.from_s3?(@new_resource.location)
