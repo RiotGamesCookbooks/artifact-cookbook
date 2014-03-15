@@ -56,7 +56,7 @@ action :create do
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
-    if Chef::Artifact.snapshot?(new_resource.location) or Chef::Artifact.latest?(new_resource.location)
+    if Chef::Artifact.snapshot?(new_resource.location) || Chef::Artifact.latest?(new_resource.location)
       Chef::Log.info "Snapshot version specifed, trying to replace destination filename from artifact metadatas"
       new_resource.path(dst_filepath)
     end
@@ -183,7 +183,7 @@ private
 
   # Returns the full file destination path from resource dirname & metadata infos
   # This is only needed when provider is working with unpredictable filenames :
-  # *-SNAPSHOT & LATEST. Works for Nexus provider only. 
+  # *-SNAPSHOT & LATEST. Works for Nexus provider only.
   #
   # @return [String]
   def dst_filepath
