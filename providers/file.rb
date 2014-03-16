@@ -195,7 +195,7 @@ private
   # @return [NilClass]
   def snapshot_path
     if Chef::Artifact.from_nexus?(file_location)
-      if Chef::Artifact.snapshot?(file_location.split(':')[3]) || Chef::Artifact.latest?(file_location.split(':')[3])
+      if Chef::Artifact.snapshot?(file_location.split(':')[-1]) || Chef::Artifact.latest?(file_location.split(':')[-1])
         Chef::Log.info "#{new_resource.name} is snapshot version - Filename is retrieved from metadata, provided name is ignored"
         new_resource.path(dst_filepath)
       end
