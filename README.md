@@ -474,28 +474,12 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
       action :install
     end
 
-# Testing
-
-A sample cookbook is available in `fixtures`. You can package it with mkartifact.sh, and
-upload it to Nexus as artifact_cookbook:test:1.2.3:tgz.
-
-Set the artifact_test_location and artifact_test_version environment variables when running
-vagrant to change how they'll be provisioned. Default is 1.2.3 from a file URL.
-
-* artifact_test_location=artifact_cookbook:test:1.2.3:tgz artifact_test_version=1.2.3 bundle exec vagrant
-
 # Releasing
 
-1. Install the prerequisite gems
+Use [stove](https://github.com/sethvargo/stove)
 
-        $ gem install chef
-        $ gem install thor
-
-2. Increment the version number in the metadata.rb file
-
-3. Run the Thor release task to create a tag and push to the community site
-
-        $ thor release
+1. Edit your `~/.stove`
+2. `bake ${VERSION}`
 
 # License and Author
 

@@ -14,3 +14,7 @@ group :integration do
   gem 'test-kitchen', '~> 1.1'
   gem 'kitchen-vagrant', '~> 0.13'
 end
+
+group :releasing do
+  gem 'stove'
+end
