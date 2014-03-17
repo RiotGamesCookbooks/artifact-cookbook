@@ -1,9 +1,16 @@
-source "http://rubygems.org"
+source 'https://rubygems.org'
 
-gem 'berkshelf', '~> 1.4.0'
-gem 'thor-foodcritic', '~> 0.1.2'
-gem 'test-kitchen', git: 'git@github.com:opscode/test-kitchen.git'
-gem 'kitchen-vagrant', :group => :integration
-gem 'rspec'
-gem 'chef', '~> 10.18'
-gem 'aws-sdk', '~> 1.15'
+gem 'rake'
+
+group :test do
+  gem 'foodcritic', '~> 3.0'
+  gem 'rubocop', '~> 0.19'
+  gem 'chefspec', '~> 3.4.0'
+  gem 'aws-sdk'
+end
+
+group :integration do
+  gem 'berkshelf'
+  gem 'test-kitchen', '~> 1.1'
+  gem 'kitchen-vagrant', '~> 0.13'
+end
