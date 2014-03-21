@@ -206,6 +206,7 @@ private
   end
 
   # Manage a symlink pointing to artifact downloaded file
+  # Symlink attr should specify absolute symlink path
   #
   # @return [NilClass] the created path
   def create_symlink
