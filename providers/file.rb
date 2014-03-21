@@ -209,7 +209,7 @@ private
   # Symlink attr should specify absolute symlink path
   #
   # @return [NilClass] the created path
-  def create_symlink()
+  def create_symlink
     link new_resource.symlink do
       to new_resource.path
       owner new_resource.owner
