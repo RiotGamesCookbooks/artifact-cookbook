@@ -39,7 +39,7 @@ def load_current_resource
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
 
     if Chef::Artifact.snapshot?(new_resource.location.split(':')[-1]) || Chef::Artifact.latest?(new_resource.location.split(':')[-1])
-      Chef::Log.info "#{new_resource.name} is snapshot version - filename is retrieved from metadata, existing name is ignored"
+      Chef::Log.info "#{new_resource.name} is a rolling/snapshot version - filename is retrieved from metadata, existing name is ignored"
       dest_filepath = ::File.join(
         ::File.dirname(new_resource.path),
         @nexus_connection.get_artifact_filename(new_resource.location)
