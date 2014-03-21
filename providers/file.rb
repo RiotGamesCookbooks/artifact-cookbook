@@ -37,6 +37,16 @@ def load_current_resource
 
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
+
+    if Chef::Artifact.snapshot?(new_resource.location.split(':')[-1]) || Chef::Artifact.latest?(new_resource.location.split(':')[-1])
+      Chef::Log.info "#{new_resource.name} is snapshot version - filename is retrieved from metadata, existing name is ignored"
+      dest_filepath = ::File.join(
+        ::File.dirname(new_resource.path),
+        @nexus_connection.get_artifact_filename(new_resource.location)
+      )
+      new_resource.path(dest_filepath)
+    end
+
   elsif Chef::Artifact.from_s3?(@new_resource.location)
     chef_gem "aws-sdk" do
       version "1.29.0"
@@ -93,8 +103,6 @@ end
 #   matches the checksum on record, false otherwise.
 def checksum_valid?
   require 'digest'
-
-  snapshot_path()
 
   if cached_checksum_exists?
     return Digest::SHA256.file(new_resource.path).hexdigest == read_checksum
@@ -182,27 +190,6 @@ private
   # @return [String]
   def read_checksum
     ::File.read(cached_checksum).strip
-  end
-
-  # Returns the full file destination path from resource dirname & metadata infos
-  # This is only needed when provider is working with unpredictable filenames :
-  # *-SNAPSHOT & LATEST. Works for Nexus provider only.
-  #
-  # @return [String]
-  def dst_filepath
-    ::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location))
-  end
-
-  # Update filename from Nexus metadata only in case of latest/snapshot version
-  #
-  # @return [NilClass]
-  def snapshot_path
-    if Chef::Artifact.from_nexus?(file_location)
-      if Chef::Artifact.snapshot?(file_location.split(':')[-1]) || Chef::Artifact.latest?(file_location.split(':')[-1])
-        Chef::Log.info "#{new_resource.name} is snapshot version - Filename is retrieved from metadata, provided name is ignored"
-        new_resource.path(dst_filepath)
-      end
-    end
   end
 
   # Manage a symlink pointing to artifact downloaded file
