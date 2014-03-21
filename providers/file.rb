@@ -37,6 +37,16 @@ def load_current_resource
 
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
+
+    if Chef::Artifact.snapshot?(new_resource.location.split(':')[-1]) || Chef::Artifact.latest?(new_resource.location.split(':')[-1])
+      Chef::Log.info "#{new_resource.name} is a rolling/snapshot version - filename is retrieved from metadata, existing name is ignored"
+      dest_filepath = ::File.join(
+        ::File.dirname(new_resource.path),
+        @nexus_connection.get_artifact_filename(new_resource.location)
+      )
+      new_resource.path(dest_filepath)
+    end
+
   elsif Chef::Artifact.from_s3?(@new_resource.location)
     chef_gem "aws-sdk" do
       version "1.29.0"
@@ -71,6 +81,7 @@ action :create do
       remote_file_resource.run_action(:create)
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
+    create_symlink if new_resource.symlink
     write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)
   rescue Chef::Artifact::ArtifactChecksumError => e
     if retries > 0
@@ -177,4 +188,16 @@ private
   # @return [String]
   def read_checksum
     ::File.read(cached_checksum).strip
+  end
+
+  # Manage a symlink pointing to artifact downloaded file
+  # Symlink attr should specify absolute symlink path
+  #
+  # @return [NilClass] the created path
+  def create_symlink
+    link new_resource.symlink do
+      to new_resource.path
+      owner new_resource.owner
+      group new_resource.group
+    end
   end

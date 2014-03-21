@@ -133,6 +133,7 @@ location               | The location to the artifact file. Either a nexus ident
 checksum               | The SHA256 checksum for verifying URL downloads. Not used when location is Nexus     | String  |
 owner                  | Owner of the downloaded file                                                         | String  |
 group                  | Group of the downloaded file                                                         | String  |
+symlink                | If specified (absolute path), creates a symlink pointing to the downloaded artifact  | String  |
 after_download         | A proc containing resources to be executed only if the artifact has been downloaded  | Proc    |
 download_retries       | The number of times to attempt to download the file if it fails its integrity check  | Integer | 1
 
@@ -445,6 +446,19 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
   configuring the `force` attribute to a node attribute, will allow you to change some of the more finer grained aspects of the
   resource. For example, when force is true, you can also change the value of owner and group to remap the deployed artifact to
   a new permissions scheme.
+
+##### Using artifact_file to download lastest artifact from Nexus
+
+    artifact_file "/tmp/my-artifact.jar" do
+      location "com.test:my-artifact:tgz:LATEST"
+      owner "me"
+      group "mes"
+      symlink "/tmp/my-artifact-LATEST.jar"
+      action :create
+    end
+
+  In this case, LWRP can't guess artifact filename during runtime, so we are not able to know the final artifactname.
+  Adding a symlink to the file allow to always have a static file pointing to latest downloaded version.
 
 ##### Using artifact_file to download a file from an S3 bucket
 
