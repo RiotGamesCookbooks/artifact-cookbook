@@ -55,12 +55,14 @@ action :create do
     if Chef::Artifact.from_s3?(file_location)
       unless ::File.exists?(new_resource.path) && checksum_valid?
         Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.path)
+        create_symlink()
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
       unless ::File.exists?(new_resource.path) && checksum_valid?
         begin
           nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
+          create_symlink()
           run_proc :after_download
         rescue NexusCli::PermissionsException => e
           msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
@@ -69,6 +71,7 @@ action :create do
       end
     else
       remote_file_resource.run_action(:create)
+      create_symlink()
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
     write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)
@@ -199,5 +202,18 @@ private
         Chef::Log.info "#{new_resource.name} is snapshot version - Filename is retrieved from metadata, provided name is ignored"
         new_resource.path(dst_filepath)
       end
+    end
+  end
+
+  # Manage a symlink pointing to artifact downloaded file
+  # Symlink attr should specify absolute symlink path
+  #
+  # @return [NilClass] the created path
+  def create_symlink
+    link new_resource.symlink do
+      to new_resource.path
+      owner new_resource.owner
+      group new_resource.group
+      only_if { new_resource.symlink }
     end
   end
