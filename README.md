@@ -447,7 +447,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
   resource. For example, when force is true, you can also change the value of owner and group to remap the deployed artifact to
   a new permissions scheme.
 
-##### Using artifact_file to download lastest artifact from Nexus 
+##### Using artifact_file to download lastest artifact from Nexus
 
     artifact_file "/tmp/my-artifact.jar" do
       location "com.test:my-artifact:tgz:LATEST"
@@ -457,7 +457,7 @@ Your data_bag can contain both ```nexus``` and ```aws``` configuration.
       action :create
     end
 
-  In this case, LWRP can't 'guess' artifact filename during runtime, so we don't know the final artifactname.
+  In this case, LWRP can't guess artifact filename during runtime, so we are not able to know the final artifactname.
   Adding a symlink to the file allow to always have a static file pointing to latest downloaded version.
 
 ##### Using artifact_file to download a file from an S3 bucket
