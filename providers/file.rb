@@ -67,7 +67,7 @@ action :create do
           else
             nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
           end
-          if nexus_connection.get_artifact_filename(file_location) != ::File.basename(new_resource.path) 
+          if nexus_connection.get_artifact_filename(file_location) != ::File.basename(new_resource.path)
             ::File.rename(::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location)), new_resource.path)
           end
           run_proc :after_download
