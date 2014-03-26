@@ -58,10 +58,10 @@ action :create do
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
-      unless ::File.exists?(new_resource.path) && checksum_valid? && (!nexus_connection.snapshot?(file_location) || !nexus_connection.latest?(file_location))
+      unless ::File.exists?(new_resource.path) && checksum_valid? && (!Chef::Artifact.snapshot?(file_location) || !Chef::Artifact.latest?(file_location))
         begin
           if ::File.exists?(new_resource.path)
-            if Digest::SHA256.file(new_resource.path).hexdigest != nexus_connection.get_artifact_sha(file_location)
+            if Digest::SHA1.file(new_resource.path).hexdigest != nexus_connection.get_artifact_sha(file_location)
               nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
             end
           else
@@ -102,7 +102,7 @@ def checksum_valid?
 
   if cached_checksum_exists?
     if Chef::Artifact.from_nexus?(file_location)
-      if nexus_connection.snapshot?(file_location) || nexus_connection.latest?(file_location)
+      if Chef::Artifact.snapshot?(file_location) || Chef::Artifact.latest?(file_location)
         return Digest::SHA1.file(new_resource.path).hexdigest == nexus_connection.get_artifact_sha(file_location)
       end
     end
