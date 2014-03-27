@@ -58,9 +58,18 @@ action :create do
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
-      unless ::File.exists?(new_resource.path) && checksum_valid?
+      unless ::File.exists?(new_resource.path) && checksum_valid? && (!Chef::Artifact.snapshot?(file_location) || !Chef::Artifact.latest?(file_location))
         begin
-          nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
+          if ::File.exists?(new_resource.path)
+            if Digest::SHA1.file(new_resource.path).hexdigest != nexus_connection.get_artifact_sha(file_location)
+              nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
+            end
+          else
+            nexus_connection.retrieve_from_nexus(file_location, ::File.dirname(new_resource.path))
+          end
+          if nexus_connection.get_artifact_filename(file_location) != ::File.basename(new_resource.path)
+            ::File.rename(::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location)), new_resource.path)
+          end
           run_proc :after_download
         rescue NexusCli::PermissionsException => e
           msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
@@ -92,6 +101,11 @@ def checksum_valid?
   require 'digest'
 
   if cached_checksum_exists?
+    if Chef::Artifact.from_nexus?(file_location)
+      if Chef::Artifact.snapshot?(file_location) || Chef::Artifact.latest?(file_location)
+        return Digest::SHA1.file(new_resource.path).hexdigest == nexus_connection.get_artifact_sha(file_location)
+      end
+    end
     return Digest::SHA256.file(new_resource.path).hexdigest == read_checksum
   end
 

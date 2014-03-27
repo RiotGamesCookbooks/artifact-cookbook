@@ -55,6 +55,16 @@ class Chef
       def get_artifact_sha(coordinates)
         REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//sha1"].text
       end
+
+      # Makes a call to Nexus and parses the returned XML to return
+      # the Nexus Server's stored filename for the given artifact.
+      #
+      # @param  coordinates [String] a colon-separated Maven identifier that represents the artifact
+      #
+      # @return [String] the filename entry for the artifact
+      def get_artifact_filename(coordinates)
+        ::File.basename(REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//repositoryPath"].text)
+      end
     end
   end
 end
