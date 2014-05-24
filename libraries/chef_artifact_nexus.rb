@@ -28,7 +28,7 @@ class Chef
       # @return [String] the version number that latest resolves to or the passed in value
       def get_actual_version(coordinates)
         artifact = NexusCli::Artifact.new(coordinates)
-        if Chef::Artifact.latest?(artifact.version) || Chef::Artifact.snapshot?(artifact.version)
+        if Chef::Artifact.latest?(artifact.version)
           REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//version"].text
         else
           artifact.version
@@ -43,7 +43,8 @@ class Chef
       # @return [Hash] writes a file to disk and returns a Hash with
       # information about that file. See NexusCli::ArtifactActions#pull_artifact.
       def retrieve_from_nexus(source, destination_dir)
-        remote.pull_artifact(source, destination_dir)
+        data = remote.pull_artifact(source, destination_dir)
+        return data
       end
 
       # Makes a call to Nexus and parses the returned XML to return
@@ -54,16 +55,6 @@ class Chef
       # @return [String] the SHA1 entry for the artifact
       def get_artifact_sha(coordinates)
         REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//sha1"].text
-      end
-
-      # Makes a call to Nexus and parses the returned XML to return
-      # the Nexus Server's stored filename for the given artifact.
-      #
-      # @param  coordinates [String] a colon-separated Maven identifier that represents the artifact
-      #
-      # @return [String] the filename entry for the artifact
-      def get_artifact_filename(coordinates)
-        ::File.basename(REXML::Document.new(remote.get_artifact_info(coordinates)).elements["//repositoryPath"].text)
       end
     end
   end
