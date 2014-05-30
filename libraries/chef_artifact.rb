@@ -44,7 +44,7 @@ class Chef
         if windows?
           %Q{copy "#{source}" "#{destination}"}.gsub(::File::SEPARATOR, ::File::ALT_SEPARATOR)
         else
-         "cp -r #{source} #{destination}"
+         "cp -R #{source} #{destination}"
         end
       end
 
