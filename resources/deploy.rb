@@ -29,6 +29,7 @@ attribute :artifact_name, :kind_of      => String, :required => true, :name_attr
 attribute :artifact_location, :kind_of  => String
 attribute :artifact_checksum, :kind_of  => String
 attribute :deploy_to, :kind_of          => String, :required => true
+attribute :download_retries, :kind_of   => Integer, :default => 1
 attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :group, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
