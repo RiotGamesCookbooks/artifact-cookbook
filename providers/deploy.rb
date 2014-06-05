@@ -571,6 +571,7 @@ private
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
+      download_retries new_resource.download_retries
       action :create
     end
   end
@@ -585,6 +586,7 @@ private
       owner new_resource.owner
       group new_resource.group
       nexus_configuration nexus_configuration_object
+      download_retries new_resource.download_retries
       action :create
     end
   end
@@ -599,6 +601,7 @@ private
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
+      download_retries new_resource.download_retries
       action :create
     end
   end
