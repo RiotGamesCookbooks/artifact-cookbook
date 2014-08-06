@@ -69,7 +69,7 @@ def load_current_resource
       when 'debian'
         nokogiri_requirements = %W{gcc make libxml2 libxslt1.1 libxml2-dev libxslt1-dev}
       when 'rhel'
-        nokogiri_requirements = %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}
+        nokogiri_requirements = %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel patch}
       else
         Chef::Log.warn "Watch out, you might not be able to install the nokogiri gem!"
       end
