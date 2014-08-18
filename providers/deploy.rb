@@ -191,7 +191,7 @@ def extract_artifact!
         group new_resource.group unless Chef::Artifact.windows?
         retries 2
       end
-    when /zip|war|jar/
+    when /zip/
       if Chef::Artifact.windows?
         windows_zipfile release_path do
           source    cached_tar_path
@@ -205,6 +205,12 @@ def extract_artifact!
           user    new_resource.owner
           group   new_resource.group
           retries 2
+        end
+      end
+    when /war|jar/
+      ruby_block "Copy War/JAR File to Release_Path" do
+        block do
+          ::FileUtils.cp "#{cached_tar_path}", "#{release_path}"
         end
       end
     else
