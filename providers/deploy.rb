@@ -147,20 +147,59 @@ action :deploy do
   end
 
   recipe_eval do
-    if Chef::Artifact.windows?
-      # Needed until CHEF-3960 is fixed.
-      symlink_changing = current_symlink_changing?
-      execute "delete the symlink at #{new_resource.current_path}" do
-        command "rmdir #{new_resource.current_path}"
-        only_if {Chef::Artifact.symlink?(new_resource.current_path) && symlink_changing}
+
+
+    if !@new_resource.use_symlinks
+      # two cases here : either I had a "fake" symlinks or a real symlink depending on the current state
+      if !is_current_using_symlinks?
+        directory current_path do
+          recursive true
+          action :delete
+        end
+      else
+        execute "delete the link current at #{current_path}" do
+          command "rmdir #{current_path}"
+        end
       end
+
+      directory current_path do
+        recursive true
+        action :create
+      end
+      execute "copy artifact from #{release_path} to #{current_path}" do
+        command Chef::Artifact.copy_command_for(release_path, current_path)
+      end
+      Chef::Artifact.write_current_symlink_to(@new_resource.deploy_to, release_path)
     end
 
-    link new_resource.current_path do
-      to release_path
-      owner new_resource.owner
-      group new_resource.group
+    if @new_resource.use_symlinks
+      if !is_current_using_symlinks?
+        execute "delete the .symlinks file at #{new_resource.deploy_to}/.symlinks" do
+          command "rm #{new_resource.deploy_to}/.symlinks"
+        end
+        directory current_path do
+          recursive true
+          action :delete
+        end
+      else
+        if Chef::Artifact.windows?
+          # Needed until CHEF-3960 is fixed.
+          symlink_changing = current_symlink_changing?
+          execute "delete the symlink at #{new_resource.current_path}" do
+            command "rmdir #{new_resource.current_path}"
+            only_if {Chef::Artifact.symlink?(new_resource.current_path) && symlink_changing}
+          end
+        end
+      end
+
+      link new_resource.current_path do
+        to release_path
+        owner new_resource.owner
+        group new_resource.group
+      end
+
     end
+
   end
 
   run_proc :after_deploy
@@ -241,8 +280,7 @@ def copy_artifact
   recipe_eval do
     execute "copy artifact" do
       command Chef::Artifact.copy_command_for(cached_tar_path, release_path)
-      user new_resource.owner
-      group new_resource.group
+
     end
   end
 end
@@ -441,6 +479,11 @@ private
     Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
   end
 
+  # @return [Boolean] the current artifact is deployed using symlinks
+  def is_current_using_symlinks?
+    Chef::Artifact.symlink? new_resource.current_path
+  end
+
   # Returns a path to the artifact being installed by
   # the configured resource.
   #
@@ -476,6 +519,8 @@ private
   def get_previous_version_numbers
     previous_version_paths.collect { |version| version.basename.to_s}
   end
+
+
 
   # Creates directories and symlinks as defined by the symlinks
   # attribute of the resource.
