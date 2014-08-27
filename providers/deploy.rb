@@ -147,10 +147,7 @@ action :deploy do
   end
 
   recipe_eval do
-
-
     if !@new_resource.use_symlinks
-      # two cases here : either I had a "fake" symlinks or a real symlink depending on the current state
       if !is_current_using_symlinks?
         directory current_path do
           recursive true
@@ -161,7 +158,6 @@ action :deploy do
           command "rmdir #{current_path}"
         end
       end
-
       directory current_path do
         recursive true
         action :create
@@ -174,9 +170,12 @@ action :deploy do
 
     if @new_resource.use_symlinks
       if !is_current_using_symlinks?
-        execute "delete the .symlinks file at #{new_resource.deploy_to}/.symlinks" do
-          command "rm #{new_resource.deploy_to}/.symlinks"
+        if ::File.exist? "#{new_resource.deploy_to}/.symlinks"
+          execute "delete the .symlinks file at #{new_resource.deploy_to}/.symlinks" do
+            command "rm #{new_resource.deploy_to}/.symlinks"
+          end
         end
+
         directory current_path do
           recursive true
           action :delete
@@ -241,8 +240,8 @@ def extract_artifact!
         package "unzip"
         execute "extract_artifact!" do
           command "unzip -q -u -o #{cached_tar_path} -d #{release_path}"
-          user    new_resource.owner
-          group   new_resource.group
+          #user    new_resource.owner
+          #group   new_resource.group
           retries 2
         end
       end
@@ -280,8 +279,8 @@ def copy_artifact
   recipe_eval do
     execute "copy artifact" do
       command Chef::Artifact.copy_command_for(cached_tar_path, release_path)
-      user  new_resource.owner unless Chef::Artifact.windows?
-      group new_resource.group unless Chef::Artifact.windows?
+      user  new_resource.owner
+      group new_resource.group
     end
   end
 end
@@ -520,8 +519,6 @@ private
   def get_previous_version_numbers
     previous_version_paths.collect { |version| version.basename.to_s}
   end
-
-
 
   # Creates directories and symlinks as defined by the symlinks
   # attribute of the resource.

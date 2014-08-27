@@ -50,6 +50,7 @@ shared_directories         | Directories to be created in the shared folder     
 force                      | Forcefully deploy an artifact even if the artifact has already been deployed         | Boolean | false
 should_migrate             | Notify the provider if it should perform application migrations                      | Boolean | false
 keep                       | Specify a number of artifacts deployments to keep on disk                            | Integer | 2
+use_symlinks               | Use symlinks for pointing the current release                                        | Boolean | true
 before_deploy              | A proc containing resources to be executed before the deploy process begins          | Proc    |
 before_extract             | A proc containing resources to be executed before the artifact package is extracted  | Proc    |
 after_extract              | A proc containing resources to be executed after the artifac package is extracted    | Proc    |
@@ -113,6 +114,10 @@ artifact_deploy "artifact_test" do
   }
 end
 ```
+
+By default, the *current* folder is a symlink pointing to the current release folder. This behavior is implicitly set by the *use_symlinks*. If 
+*use_symlinks* is `false` then no symlinks are used for the *current* directory. Instead, files are copied from the current release directory to *current* and
+a file named `.symlinks` (located at the *deploy_to* root) contains the reference of the current release. Please note that this parameter doesn't affect how *symlinks* behaves.
 
 ## artifact_file
 
