@@ -241,8 +241,8 @@ def copy_artifact
   recipe_eval do
     execute "copy artifact" do
       command Chef::Artifact.copy_command_for(cached_tar_path, release_path)
-      user new_resource.owner
-      group new_resource.group
+      user new_resource.owner unless Chef::Artifact.windows?
+      group new_resource.group unless Chef::Artifact.windows?
     end
   end
 end
