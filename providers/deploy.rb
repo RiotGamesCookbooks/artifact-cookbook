@@ -191,7 +191,7 @@ def extract_artifact!
         group new_resource.group unless Chef::Artifact.windows?
         retries 2
       end
-    when /zip|war|jar/
+    when /zip|war|jar|ear/
       if Chef::Artifact.windows?
         windows_zipfile release_path do
           source    cached_tar_path
@@ -208,7 +208,7 @@ def extract_artifact!
         end
       end
     else
-      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
+      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar ear]."
     end
 
     # Working with artifacts that are packaged under an extra top level directory
