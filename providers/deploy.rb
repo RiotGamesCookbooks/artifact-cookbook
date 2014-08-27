@@ -184,14 +184,21 @@ end
 def extract_artifact!
   recipe_eval do
     case ::File.extname(cached_tar_path)
-    when /gz|tgz|tar|bz2|tbz/
+    when /(tar|tgz|tar\.gz|tbz2|tbz|tar\.xz)$/
+
+      taropts = [ '-x' ]
+      taropts.push('-z') if cached_tar_path.match(/(tgz|tar\.gz)$/)
+      taropts.push('-j') if cached_tar_path.match(/(tbz2|tbz)$/)
+      taropts.push('-J') if cached_tar_path.match(/tar\.xz$/)
+      taropts = taropts.join(' ')
+
       execute "extract_artifact!" do
-        command "tar xf #{cached_tar_path} -C #{release_path}"
+        command "tar #{taropts} -f #{cached_tar_path} -C #{release_path}"
         user new_resource.owner unless Chef::Artifact.windows?
         group new_resource.group unless Chef::Artifact.windows?
         retries 2
       end
-    when /zip/
+    when /zip$/
       if Chef::Artifact.windows?
         windows_zipfile release_path do
           source    cached_tar_path
@@ -207,7 +214,7 @@ def extract_artifact!
           retries 2
         end
       end
-    when /war|jar/
+    when /(war|jar)$/
       ruby_block "Copy War/JAR File to Release_Path" do
         block do
           ::FileUtils.cp "#{cached_tar_path}", "#{release_path}"
