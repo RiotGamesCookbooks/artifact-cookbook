@@ -166,9 +166,7 @@ action :deploy do
         command Chef::Artifact.copy_command_for(release_path, current_path)
       end
       Chef::Artifact.write_current_symlink_to(@new_resource.deploy_to, release_path)
-    end
-
-    if @new_resource.use_symlinks
+   else
       if !is_current_using_symlinks?
         if ::File.exist? "#{new_resource.deploy_to}/.symlinks"
           execute "delete the .symlinks file at #{new_resource.deploy_to}/.symlinks" do
@@ -196,9 +194,7 @@ action :deploy do
         owner new_resource.owner
         group new_resource.group
       end
-
     end
-
   end
 
   run_proc :after_deploy
