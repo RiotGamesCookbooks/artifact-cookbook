@@ -300,7 +300,7 @@ class Chef
       # @param current_version_pointing_to [String] current release version referenced by "current"
       def write_current_symlink_to(deploy_to_dir, current_version_pointing_to)
         symlinks_file = ::File.join(deploy_to_dir, ".symlinks")
-        if ::File.exist? symlinks_file
+        if ::File.exist?(symlinks_file)
           symlinks_content = YAML.load_file(symlinks_file)
         else
           symlinks_content = Hash.new
