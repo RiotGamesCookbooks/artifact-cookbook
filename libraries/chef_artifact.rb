@@ -214,7 +214,9 @@ class Chef
       # Returns the currently deployed version of an artifact given that artifacts
       # installation directory by reading what directory the 'current' symlink
       # points to.
-      # 
+      # if the 'current' directory is not a symlink, a ".symlinks" file is opened and the value
+      # indicated by the 'current' key is returned.
+      #
       # @param  deploy_to_dir [String] the directory where an artifact is installed
       # 
       # @example
@@ -225,7 +227,13 @@ class Chef
 
         current_dir = ::File.join(deploy_to_dir, "current")
         if ::File.exists?(current_dir)
-          ::File.basename(readlink(current_dir))
+          if symlink?(current_dir)
+            ::File.basename(readlink(current_dir))
+          else
+            symlinks_file = ::File.join(deploy_to_dir, ".symlinks")
+            raise Exception, "error : file #{symlinks_file} doesn't exist" unless ::File.exist? symlinks_file
+            YAML.load_file(symlinks_file)['current']
+          end
         end
       end
 
@@ -283,6 +291,22 @@ class Chef
         nil
       rescue NoMethodError
         raise DataBagEncryptionError.new
+      end
+
+      # Create and Write content of the ".symlinks" file. This file contains a reference
+      # to the reference of release version which "current" is pointing to.
+      #
+      # @param deploy_to_dir [String] root directory containing the ".symlinks" file.
+      # @param current_version_pointing_to [String] current release version referenced by "current"
+      def write_current_symlink_to(deploy_to_dir, current_version_pointing_to)
+        symlinks_file = ::File.join(deploy_to_dir, ".symlinks")
+        if ::File.exist?(symlinks_file)
+          symlinks_content = YAML.load_file(symlinks_file)
+        else
+          symlinks_content = Hash.new
+        end
+        symlinks_content['current'] = current_version_pointing_to
+        ::File.open(symlinks_file , 'w+') {|f| f.write(symlinks_content.to_yaml) }
       end
     end
   end

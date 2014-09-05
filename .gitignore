@@ -7,3 +7,5 @@ test/integration/data_bags/
 .kitchen.local.yml
 .vagrant
 .DS_Store
+*.iml 
+vendor 

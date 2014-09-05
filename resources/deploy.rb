@@ -56,6 +56,7 @@ attribute :remove_top_level_directory, :kind_of => [ TrueClass, FalseClass ], :d
 attribute :skip_manifest_check, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :remove_on_force, :kind_of => [ TrueClass, FalseClass ], :default => false
 attribute :nexus_configuration, :kind_of => Chef::Artifact::NexusConfiguration, :default => Chef::Artifact::NexusConfiguration.from_data_bag
+attribute :use_symlinks, :kind_of       => [ TrueClass, FalseClass ], :default => true
 
 def initialize(*args)
   super
