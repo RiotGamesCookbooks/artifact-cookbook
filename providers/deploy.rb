@@ -68,8 +68,8 @@ def load_current_resource
       case node['platform_family']
       when 'debian'
         nokogiri_requirements = %W{gcc make libxml2 libxslt1.1 libxml2-dev libxslt1-dev}
-      when 'rhel'
-        nokogiri_requirements = %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel patch}
+      when 'rhel', 'fedora'
+        nokogiri_requirements = %W{gcc make libxml2 libxslt libxml2-devel libxslt-devel}
       else
         Chef::Log.warn "Watch out, you might not be able to install the nokogiri gem!"
       end
@@ -136,6 +136,23 @@ action :deploy do
 
   run_proc :configure
 
+  recipe_eval do
+    if Chef::Artifact.windows?
+      # Needed until CHEF-3960 is fixed.
+      symlink_changing = current_symlink_changing?
+      execute "delete the symlink at #{new_resource.current_path}" do
+        command "rmdir #{new_resource.current_path}"
+        only_if {Chef::Artifact.symlink?(new_resource.current_path) && symlink_changing}
+      end
+    end
+
+    link new_resource.current_path do
+      to release_path
+      owner new_resource.owner
+      group new_resource.group
+    end
+  end
+
   if deploy? && new_resource.should_migrate
     run_proc :before_migrate
     run_proc :migrate
@@ -144,57 +161,6 @@ action :deploy do
 
   if deploy? || manifest_differences? || current_symlink_changing?
     run_proc :restart
-  end
-
-  recipe_eval do
-    if !@new_resource.use_symlinks
-      if !is_current_using_symlinks?
-        directory current_path do
-          recursive true
-          action :delete
-        end
-      else
-        execute "delete the link current at #{current_path}" do
-          command "rmdir #{current_path}"
-        end
-      end
-      directory current_path do
-        recursive true
-        action :create
-      end
-      execute "copy artifact from #{release_path} to #{current_path}" do
-        command Chef::Artifact.copy_command_for(release_path, current_path)
-      end
-      Chef::Artifact.write_current_symlink_to(@new_resource.deploy_to, release_path)
-   else
-      if !is_current_using_symlinks?
-        if ::File.exist? "#{new_resource.deploy_to}/.symlinks"
-          execute "delete the .symlinks file at #{new_resource.deploy_to}/.symlinks" do
-            command "rm #{new_resource.deploy_to}/.symlinks"
-          end
-        end
-
-        directory current_path do
-          recursive true
-          action :delete
-        end
-      else
-        if Chef::Artifact.windows?
-          # Needed until CHEF-3960 is fixed.
-          symlink_changing = current_symlink_changing?
-          execute "delete the symlink at #{new_resource.current_path}" do
-            command "rmdir #{new_resource.current_path}"
-            only_if {Chef::Artifact.symlink?(new_resource.current_path) && symlink_changing}
-          end
-        end
-      end
-
-      link new_resource.current_path do
-        to release_path
-        owner new_resource.owner
-        group new_resource.group
-      end
-    end
   end
 
   run_proc :after_deploy
@@ -218,21 +184,14 @@ end
 def extract_artifact!
   recipe_eval do
     case ::File.extname(cached_tar_path)
-    when /(tar|tgz|tar\.gz|tbz2|tbz|tar\.xz)$/
-
-      taropts = [ '-x' ]
-      taropts.push('-z') if cached_tar_path.match(/(tgz|tar\.gz)$/)
-      taropts.push('-j') if cached_tar_path.match(/(tbz2|tbz)$/)
-      taropts.push('-J') if cached_tar_path.match(/tar\.xz$/)
-      taropts = taropts.join(' ')
-
+    when /gz|tgz|tar|bz2|tbz/
       execute "extract_artifact!" do
-        command "tar #{taropts} -f #{cached_tar_path} -C #{release_path}"
+        command "tar xf #{cached_tar_path} -C #{release_path}"
         user new_resource.owner unless Chef::Artifact.windows?
         group new_resource.group unless Chef::Artifact.windows?
         retries 2
       end
-    when /zip$/
+    when /zip|war|jar/
       if Chef::Artifact.windows?
         windows_zipfile release_path do
           source    cached_tar_path
@@ -246,12 +205,6 @@ def extract_artifact!
           user    new_resource.owner
           group   new_resource.group
           retries 2
-        end
-      end
-    when /(war|jar)$/
-      ruby_block "Copy War/JAR File to Release_Path" do
-        block do
-          ::FileUtils.cp "#{cached_tar_path}", "#{release_path}"
         end
       end
     else
@@ -288,8 +241,8 @@ def copy_artifact
   recipe_eval do
     execute "copy artifact" do
       command Chef::Artifact.copy_command_for(cached_tar_path, release_path)
-      user new_resource.owner unless Chef::Artifact.windows?
-      group new_resource.group unless Chef::Artifact.windows?
+      user new_resource.owner
+      group new_resource.group
     end
   end
 end
@@ -488,11 +441,6 @@ private
     Chef::Artifact.get_current_deployed_version(new_resource.deploy_to)
   end
 
-  # @return [Boolean] the current artifact is deployed using symlinks
-  def is_current_using_symlinks?
-    Chef::Artifact.symlink? new_resource.current_path
-  end
-
   # Returns a path to the artifact being installed by
   # the configured resource.
   #
@@ -623,7 +571,6 @@ private
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
-      download_retries new_resource.download_retries
       action :create
     end
   end
@@ -638,7 +585,6 @@ private
       owner new_resource.owner
       group new_resource.group
       nexus_configuration nexus_configuration_object
-      download_retries new_resource.download_retries
       action :create
     end
   end
@@ -653,7 +599,6 @@ private
       owner new_resource.owner
       group new_resource.group
       checksum new_resource.artifact_checksum
-      download_retries new_resource.download_retries
       action :create
     end
   end
