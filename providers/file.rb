@@ -19,6 +19,7 @@
 # limitations under the License.
 #
 require 'chef/mixin/create_path'
+require 'chef/mixin/enforce_ownership_and_permissions'
 
 attr_reader :file_location
 attr_reader :nexus_configuration
@@ -26,6 +27,7 @@ attr_reader :nexus_connection
 
 include Chef::Artifact::Helpers
 include Chef::Mixin::CreatePath
+include Chef::Mixin::EnforceOwnershipAndPermissions
 
 def load_current_resource
   create_cache_path
@@ -55,6 +57,7 @@ action :create do
     if Chef::Artifact.from_s3?(file_location)
       unless ::File.exists?(new_resource.path) && checksum_valid?
         Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.path)
+        enforce_ownership_and_permissions
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
@@ -70,6 +73,7 @@ action :create do
           if nexus_connection.get_artifact_filename(file_location) != ::File.basename(new_resource.path)
             ::File.rename(::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location)), new_resource.path)
           end
+          enforce_ownership_and_permissions
           run_proc :after_download
         rescue NexusCli::PermissionsException => e
           msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
@@ -78,6 +82,7 @@ action :create do
       end
     else
       remote_file_resource.run_action(:create)
+      enforce_ownership_and_permissions
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
     write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)
@@ -135,6 +140,10 @@ def remote_file_resource
     backup false
     action :nothing
   end
+end
+
+def manage_symlink_access?
+    false
 end
 
 private

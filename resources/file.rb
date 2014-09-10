@@ -19,14 +19,15 @@
 # limitations under the License.
 #
 
+require 'chef/mixin/securable'
+include Chef::Mixin::Securable
+
 actions :create
 default_action :create
 
 attribute :path, :kind_of => String, :name_attribute => true, :required => true
 attribute :location, :kind_of => String
 attribute :checksum, :kind_of  => String
-attribute :owner, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
-attribute :group, :kind_of => String, :required => true, :regex => Chef::Config[:user_valid_regex]
 attribute :download_retries, :kind_of => Integer, :default => 1
 attribute :after_download, :kind_of => Proc
 attribute :nexus_configuration, :kind_of => Chef::Artifact::NexusConfiguration, :default => Chef::Artifact::NexusConfiguration.from_data_bag
