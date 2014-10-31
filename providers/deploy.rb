@@ -217,7 +217,7 @@ end
 # @return [void]
 def extract_artifact!
   recipe_eval do
-    case ::File.extname(cached_tar_path)
+    case extname(cached_tar_path)
     when /(tar|tgz|tar\.gz|tbz2|tbz|tar\.xz)$/
 
       taropts = [ '-x' ]
@@ -694,4 +694,25 @@ private
     manifest = generate_manifest(release_path)
     Chef::Log.debug "artifact_deploy[write_manifest] Writing manifest.yaml file to #{manifest_file}"
     ::File.open(manifest_file, "w") { |file| file.puts YAML.dump(manifest) }
+  end
+
+  # Returns the extension of a file. 
+  # Takes care of multiperiod extensions like tar.gz, tar.bz2, etc.
+  #
+  # @return [String] a String representing the extension. 
+  def extname(file)
+    basename = ::File.basename(file)
+    # in most cases, if count of '.'' <= 1 , consider as a "normal case" and
+    # return the native function result
+    return ::File.extname(file) if basename.count('.') <= 1
+    
+    # for other cases, we check against specific patterns
+    # here we specify some well-known multi-period extensions.
+    wellknown_extensions =  %w(tar.gz tar.bz2 tar.xz) 
+    wellknown_extensions.each do |extension|
+      return extension if basename.end_with? extension
+    end
+
+    # if it's none of the well-known extension, return the native function call
+    File.extname(file)
   end
