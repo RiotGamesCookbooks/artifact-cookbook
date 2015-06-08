@@ -1,9 +1,9 @@
 class Chef
   module Artifact
-    DATA_BAG = "artifact".freeze
-    WILDCARD_DATABAG_ITEM = "_wildcard".freeze
-    DATA_BAG_NEXUS = 'nexus'.freeze
-    DATA_BAG_AWS = 'aws'.freeze
+    DATA_BAG = "artifact".freeze unless defined?(DATA_BAG)
+    WILDCARD_DATABAG_ITEM = "_wildcard".freeze unless defined?(WILDCARD_DATABAG_ITEM)
+    DATA_BAG_NEXUS = 'nexus'.freeze unless defined?(DATA_BAG_NEXUS)
+    DATA_BAG_AWS = 'aws'.freeze unless defined?(DATA_BAG_AWS)
 
     module File
 
