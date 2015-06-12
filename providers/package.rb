@@ -19,6 +19,8 @@
 # limitations under the License.
 #
 
+use_inline_resources
+
 attr_reader :nexus_configuration_object
 attr_reader :extension
 attr_reader :file_name
