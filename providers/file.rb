@@ -27,6 +27,8 @@ attr_reader :nexus_connection
 include Chef::Artifact::Helpers
 include Chef::Mixin::CreatePath
 
+use_inline_resources
+
 def load_current_resource
   create_cache_path
   if Chef::Artifact.from_nexus?(new_resource.location)

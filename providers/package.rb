@@ -19,11 +19,11 @@
 # limitations under the License.
 #
 
-use_inline_resources
-
 attr_reader :nexus_configuration_object
 attr_reader :extension
 attr_reader :file_name
+
+use_inline_resources
 
 def load_current_resource
   if Chef::Artifact.from_nexus?(new_resource.location)

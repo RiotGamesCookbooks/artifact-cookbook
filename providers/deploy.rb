@@ -38,6 +38,8 @@ attr_reader :nexus_connection
 
 include Chef::Artifact::Helpers
 
+use_inline_resources
+
 def load_current_resource
   if Chef::Artifact.latest?(@new_resource.version) && Chef::Artifact.from_http?(@new_resource.artifact_location)
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
