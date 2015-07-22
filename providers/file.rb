@@ -27,6 +27,8 @@ attr_reader :nexus_connection
 include Chef::Artifact::Helpers
 include Chef::Mixin::CreatePath
 
+use_inline_resources
+
 def load_current_resource
   create_cache_path
   if Chef::Artifact.from_nexus?(new_resource.location)
@@ -78,6 +80,7 @@ action :create do
       end
     else
       remote_file_resource.run_action(:create)
+      run_proc :after_download if @remote_file_resource.updated_by_last_action?
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
     write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)

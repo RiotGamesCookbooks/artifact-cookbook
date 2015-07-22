@@ -29,6 +29,8 @@ attribute :artifact_name, :kind_of      => String, :required => true, :name_attr
 attribute :artifact_location, :kind_of  => String
 attribute :artifact_checksum, :kind_of  => String
 attribute :deploy_to, :kind_of          => String, :required => true
+attribute :shared_name, :kind_of        => String, :default => 'shared'
+attribute :releases_name, :kind_of      => String, :default => 'releases'
 attribute :download_retries, :kind_of   => Integer, :default => 1
 attribute :version, :kind_of            => String, :required => true
 attribute :owner, :kind_of              => String, :required => true, :regex => Chef::Config[:user_valid_regex]
@@ -72,5 +74,5 @@ def current_path
 end
 
 def shared_path
-  ::File.join(self.deploy_to, "shared")
+  ::File.join(self.deploy_to, self.shared_name)
 end

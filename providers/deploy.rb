@@ -38,6 +38,8 @@ attr_reader :nexus_connection
 
 include Chef::Artifact::Helpers
 
+use_inline_resources
+
 def load_current_resource
   if Chef::Artifact.latest?(@new_resource.version) && Chef::Artifact.from_http?(@new_resource.artifact_location)
     Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
@@ -336,7 +338,7 @@ def delete_current_if_forcing!
       level :info
     end
 
-    directory ::File.join(new_resource.deploy_to, 'releases', artifact_version) do
+    directory ::File.join(new_resource.deploy_to, new_resource.releases_name, artifact_version) do
       recursive true
       action :delete
     end
@@ -370,7 +372,7 @@ def delete_previous_versions!
         action    :delete
       end
 
-      directory ::File.join(new_resource.deploy_to, 'releases', version.basename) do
+      directory ::File.join(new_resource.deploy_to, new_resource.releases_name, version.basename) do
         recursive true
         action    :delete
       end
@@ -503,7 +505,7 @@ private
   #
   # @return [String] the artifacts release path
   def get_release_path
-    ::File.join(new_resource.deploy_to, "releases", artifact_version)
+    ::File.join(new_resource.deploy_to, new_resource.releases_name, artifact_version)
   end
 
   # Searches the releases directory and returns an Array of version folders. After
@@ -512,11 +514,13 @@ private
   #
   # @return [Array] the mtime sorted array of currently installed versions
   def get_previous_version_paths
-    versions = Dir[::File.join(new_resource.deploy_to, "releases", '**')].collect do |v|
+    versions = Dir[::File.join(new_resource.deploy_to, new_resource.releases_name, '**')].collect do |v|
       Pathname.new(v)
     end
 
-    versions.reject! { |v| v.basename.to_s == get_current_release_version }
+    exclude_filter = [get_current_release_version, 'current', new_resource.shared_name]
+
+    versions.reject! { |v| exclude_filter.include?(v.basename.to_s) || v.file? }
 
     versions.sort_by(&:mtime)
   end
