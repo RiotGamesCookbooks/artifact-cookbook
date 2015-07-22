@@ -520,7 +520,7 @@ private
 
     exclude_filter = [get_current_release_version, 'current', new_resource.shared_name]
 
-    versions.reject! { |v| exclude_filter.include?(v.basename.to_s) }
+    versions.reject! { |v| exclude_filter.include?(v.basename.to_s) || v.file? }
 
     versions.sort_by(&:mtime)
   end
