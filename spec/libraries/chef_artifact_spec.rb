@@ -30,7 +30,7 @@ describe Chef::Artifact do
 
       it "loads an encrypted data bag" do
         expect(data_bag_config_for.symbolize_keys).to eq(data_bag_item)
-      end      
+      end
     end
 
     context "when loading legacy data bag format" do
@@ -137,7 +137,7 @@ describe Chef::Artifact do
       it "looks for the '_wildcard' data bag item" do
         described_class.stub(:encrypted_data_bag_item).and_return(nil, data_bag_item)
         described_class.should_receive(:encrypted_data_bag_item).with(data_bag, "_wildcard")
-        expect(encrypted_data_bag_for).to eq(data_bag_item)        
+        expect(encrypted_data_bag_for).to eq(data_bag_item)
       end
 
       it "looks for the 'nexus' data bag item" do
@@ -202,6 +202,12 @@ describe Chef::Artifact do
   describe ":latest?" do
     specify { described_class.latest?('latest').should eq(true) }
     specify { described_class.latest?('LAtest').should eq(true) }
+    specify { described_class.latest?('3.0.1').should eq(false) }
+  end
+
+  describe ":release?" do
+    specify { described_class.latest?('release').should eq(true) }
+    specify { described_class.latest?('RELease').should eq(true) }
     specify { described_class.latest?('3.0.1').should eq(false) }
   end
 

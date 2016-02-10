@@ -3,7 +3,7 @@
 # Provider:: file
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,7 @@ action :create do
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
-      unless ::File.exists?(new_resource.path) && checksum_valid? && (!Chef::Artifact.snapshot?(file_location) || !Chef::Artifact.latest?(file_location))
+      unless ::File.exists?(new_resource.path) && checksum_valid? && (!Chef::Artifact.snapshot?(file_location) || !Chef::Artifact.latest?(file_location) || !Chef::Artifact.release?(file_location))
         begin
           if ::File.exists?(new_resource.path)
             if Digest::SHA1.file(new_resource.path).hexdigest != nexus_connection.get_artifact_sha(file_location)
@@ -102,7 +102,7 @@ def checksum_valid?
 
   if cached_checksum_exists?
     if Chef::Artifact.from_nexus?(file_location)
-      if Chef::Artifact.snapshot?(file_location) || Chef::Artifact.latest?(file_location)
+      if Chef::Artifact.snapshot?(file_location) || Chef::Artifact.latest?(file_location) || Chef::Artifact.release?(file_location)
         return Digest::SHA1.file(new_resource.path).hexdigest == nexus_connection.get_artifact_sha(file_location)
       end
     end
@@ -147,7 +147,7 @@ private
     execute_run_proc("artifact_file", new_resource, name)
   end
 
-  # Scrubs the file_location and returns the path to 
+  # Scrubs the file_location and returns the path to
   # the resource's checksum file.
   #
   # @return [String]
@@ -178,7 +178,7 @@ private
     ::File.exists?(cached_checksum)
   end
 
-  # Writes a file to file_cache_path. This file contains a SHA256 digest of the 
+  # Writes a file to file_cache_path. This file contains a SHA256 digest of the
   # artifact file. Returns the result of the file.puts command, which will be nil.
   #
   # @return [NilClass]
