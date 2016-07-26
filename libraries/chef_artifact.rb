@@ -298,6 +298,8 @@ class Chef
         Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
       rescue Net::HTTPServerException => e
         nil
+      rescue ArgumentError
+        Mash.from_hash(Chef::DataBagItem.load(data_bag, data_bag_item).to_hash)
       rescue NoMethodError
         raise DataBagEncryptionError.new
       end
