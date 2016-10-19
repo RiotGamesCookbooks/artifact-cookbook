@@ -50,7 +50,7 @@ def load_current_resource
 
   if Chef::Artifact.from_nexus?(@new_resource.artifact_location)
     chef_gem "nexus_cli" do
-      version "4.0.2"
+      version ::Chef::Artifact::Nexus::NEXUS_CLI_VERSION
     end
 
     @nexus_configuration_object = new_resource.nexus_configuration

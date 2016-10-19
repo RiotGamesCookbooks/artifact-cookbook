@@ -4,6 +4,8 @@ class Chef
   module Artifact
     class Nexus
 
+      NEXUS_CLI_VERSION = '4.0.2'.freeze
+
       attr_reader :node, :nexus_configuration
 
       def initialize(node, nexus_configuration)
