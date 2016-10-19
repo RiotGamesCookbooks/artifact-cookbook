@@ -26,7 +26,7 @@ attr_reader :file_name
 def load_current_resource
   if Chef::Artifact.from_nexus?(new_resource.location)
     chef_gem "nexus_cli" do
-      version "4.0.2"
+      version ::Chef::Artifact::Nexus::NEXUS_CLI_VERSION
     end
     require 'nexus_cli'
     artifact = NexusCli::Artifact.new(new_resource.location)
