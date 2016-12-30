@@ -6,7 +6,7 @@ group :test do
   gem 'foodcritic', '~> 3.0'
   gem 'rubocop', '~> 0.19'
   gem 'chefspec', '~> 3.4.0'
-  gem 'aws-sdk'
+  gem 'aws-sdk', '~> 2'
 end
 
 group :integration do

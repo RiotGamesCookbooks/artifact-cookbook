@@ -4,24 +4,32 @@ driver_plugin: vagrant
 platforms:
 - name: centos-6.3
 - name: ubuntu-12.04
+- name: ubuntu-14.04
 
 suites:
 - name: default
   run_list: ["recipe[artifact_test]"]
-  attributes: 
+  attributes:
     artifact_test:
       version: "1.2.3"
       location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
 - name: forcing
   run_list: ["recipe[artifact_test::default]", "recipe[artifact_test::force_install]"]
-  attributes: 
+  attributes:
     artifact_test:
       version: "1.2.3"
       location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
 - name: file
   run_list: ["recipe[artifact_test::file]"]
-- name : nexus-file
+- name: nexus-file
   run_list: ["recipe[artifact_test::file]"]
   attributes:
     artifact_test:
       file_url: "com.test:mytest:1.0.0:tgz"
+- name: s3-file
+  run_list: ["recipe[artifact_test]"]
+  attributes:
+    artifact_test:
+      version: "1.2.3"
+      location: "s3://s3-us-east-1.amazonaws.com/bucket/path/to/file.tgz"
+      deploy_to: "1.2.3"

@@ -8,22 +8,22 @@ class Chef
     module File
 
       # Returns true if the given file is a symlink.
-      # 
+      #
       # @param  path [String] the path to the file to test
-      # 
+      #
       # @return [Boolean]
       def symlink?(path)
         if windows?
           require 'chef/win32/file'
           return Chef::ReservedNames::Win32::File.symlink?(path)
         end
-        ::File.symlink?(path)        
+        ::File.symlink?(path)
       end
 
       # Returns the value of the readlink method.
-      # 
+      #
       # @param  path [String] the path to a symlink
-      # 
+      #
       # @return [String] the path that the symlink points to
       def readlink(path)
         if windows?
@@ -34,11 +34,11 @@ class Chef
       end
 
       # Generates a command to execute that either uses the Unix cp
-      # command or the Windows copy command. 
+      # command or the Windows copy command.
       #
       # @param  source [String] the file to copy
       # @param  destination [String] the path to copy the source to
-      # 
+      #
       # @return [String] a useable command to copy a file
       def copy_command_for(source, destination)
         if windows?
@@ -62,7 +62,7 @@ class Chef
       #
       # @param  environment [String] the environment
       # @param  source [String] the deployment source to load configuration for
-      # 
+      #
       # @return [Chef::DataBagItem] the data bag item
       def data_bag_config_for(environment, source)
         data_bag_item = if Chef::Config[:solo]
@@ -92,24 +92,35 @@ class Chef
           require 'aws-sdk'
           config = data_bag_config_for(node.chef_environment, DATA_BAG_AWS)
           s3_endpoint, bucket_name, object_name = parse_s3_url(source_file)
-
+          endpoint_parts = s3_endpoint.split('.')
+          endpoint = endpoint_parts[0]
+          # Set Region
+          region = endpoint[3,-1]
+          if region.nil? || region == 'external-1'
+            region = 'us-east-1'
+          end
+          # Set Config
+          Aws.config[:region] = region
           if config.empty?
-            AWS.config(:s3 => { :endpoint => s3_endpoint })
+            Chef::Log.debug("Config not found for databag AWS. Using Instance Profile Credentials")
+            Aws.config[:credentials] = Aws::InstanceProfileCredentials.new()
           else
-            AWS.config(:access_key_id => config['access_key_id'],
-                       :secret_access_key => config['secret_access_key'],
-                       :s3 => { :endpoint => s3_endpoint })
+            Chef::Log.debug("Config found for databag AWS. Using databag for credentials")
+            Aws.config[:credentials] = Aws::Credentials.new(
+                config['access_key_id'],
+                config['secret_access_key']
+            )
           end
-
-          object = get_s3_object(bucket_name, object_name)
-
           Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
-          ::File.open(destination_file, 'wb') do |file|
-            object.read do |chunk|
-              file.write(chunk)
-            end
-            Chef::Log.debug("File #{destination_file} is #{file.size} bytes on disk")
-          end
+          # Retrieve S3 Object
+          client = Aws::S3::Client.new()
+          object = client.get_object(
+              response_target: destination_file,
+              bucket: bucket_name,
+              key: object_name
+          )
+          Chef::Log.debug("File #{destination_file} is #{object.content_length} bytes on disk")
+
         rescue URI::InvalidURIError
           Chef::Log.warn("Expected an S3 URL but found #{source_file}")
           raise
@@ -132,30 +143,11 @@ class Chef
         [s3_endpoint, bucket_name, object_name]
       end
 
-      # Given a bucket and object name - fetches the object from S3
-      #
-      # @example
-      #   object = Chef::Artifact.get_s3_object('my-bucket', 'my-file.txt')
-      #
-      # @param  bucket_name [String] Name of the S3 bucket
-      # @param  object_name [String] Name of the S3 object
-      #
-      # @return [AWS::S3::S3Object] An S3 Object
-      def get_s3_object(bucket_name, object_name)
-        s3_client = AWS::S3.new()
-        bucket = s3_client.buckets[bucket_name]
-        raise S3BucketNotFoundError.new(bucket_name) unless bucket.exists?
-
-        object = bucket.objects[object_name]
-        raise S3ArtifactNotFoundError.new(bucket_name, object_name) unless object.exists?
-        object
-      end
-
       # Returns true when the artifact is believed to be from a
       # Nexus source.
       #
       # @param  location [String] the artifact_location
-      # 
+      #
       # @return [Boolean] true when the location is a colon-separated value
       def from_nexus?(location)
         !from_http?(location) && location.split(":").length > 2
@@ -173,9 +165,9 @@ class Chef
 
       # Returns true when the artifact is believed to be from an
       # http source.
-      # 
+      #
       # @param  location [String] the artifact_location
-      # 
+      #
       # @return [Boolean] true when the location matches http or https.
       def from_http?(location)
         location_of_type(location, %w(http https))
@@ -218,10 +210,10 @@ class Chef
       # indicated by the 'current' key is returned.
       #
       # @param  deploy_to_dir [String] the directory where an artifact is installed
-      # 
+      #
       # @example
       #   Chef::Artifact.get_current_deployed_version("/opt/my_deploy_dir") => "2.0.65"
-      # 
+      #
       # @return [String] the currently deployed version of the given artifact
       def get_current_deployed_version(deploy_to_dir)
 
@@ -238,12 +230,12 @@ class Chef
       end
 
       # Looks for the given data bag in the cache and if not found, will load a
-      # data bag item named for the chef_environment, '_wildcard', or the old 
+      # data bag item named for the chef_environment, '_wildcard', or the old
       # 'nexus' value.
       #
       # @param  environment [String] the environment
       # @param  data_bag [String] the data bag to load
-      # 
+      #
       # @return [Chef::Mash] the data bag item in Mash form
       def encrypted_data_bag_for(environment, data_bag)
         @encrypted_data_bags = {} unless @encrypted_data_bags
@@ -268,7 +260,7 @@ class Chef
       # Loads an entry from the encrypted_data_bags class variable.
       #
       # @param data_bag [String] the data bag to find
-      # 
+      #
       # @return [type] [description]
       def get_from_data_bags_cache(data_bag)
         encrypted_data_bags[data_bag]
@@ -280,10 +272,10 @@ class Chef
       #
       # @param  data_bag [String]
       # @param  data_bag_item [String]
-      # 
+      #
       # @raise [Chef::Artifact::DataBagEncryptionError] when the data bag cannot be decrypted
       #   or transformed into a Mash for some reason (Chef 10 vs Chef 11 data bag changes).
-      # 
+      #
       # @return [Chef::Mash]
       def encrypted_data_bag_item(data_bag, data_bag_item)
         Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
