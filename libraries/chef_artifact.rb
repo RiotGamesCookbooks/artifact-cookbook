@@ -103,13 +103,13 @@ class Chef
           Aws.config[:region] = region
           if config.empty?
             Chef::Log.debug("Config not found for databag AWS. Using Instance Profile Credentials")
-            Aws.config[:credentials] = Aws::InstanceProfileCredentials.new()
+          #  Aws.config[:credentials] = Aws::InstanceProfileCredentials.new()
           else
             Chef::Log.debug("Config found for databag AWS. Using databag for credentials")
-            Aws.config[:credentials] = Aws::Credentials.new(
-                config['access_key_id'],
-                config['secret_access_key']
-            )
+          #  Aws.config[:credentials] = Aws::Credentials.new(
+          #      config['access_key_id'],
+          #      config['secret_access_key']
+          #  )
           end
           Chef::Log.debug("Downloading #{object_name} from S3 bucket #{bucket_name}")
           # Retrieve S3 Object
