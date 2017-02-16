@@ -278,7 +278,8 @@ class Chef
       #
       # @return [Chef::Mash]
       def encrypted_data_bag_item(data_bag, data_bag_item)
-        Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
+      # Comment this for temporary fix the databag on rightscale issue
+#        Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
       rescue Net::HTTPServerException => e
         nil
       rescue NoMethodError
