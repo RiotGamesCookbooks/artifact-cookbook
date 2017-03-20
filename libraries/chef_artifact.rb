@@ -8,22 +8,22 @@ class Chef
     module File
 
       # Returns true if the given file is a symlink.
-      # 
+      #
       # @param  path [String] the path to the file to test
-      # 
+      #
       # @return [Boolean]
       def symlink?(path)
         if windows?
           require 'chef/win32/file'
           return Chef::ReservedNames::Win32::File.symlink?(path)
         end
-        ::File.symlink?(path)        
+        ::File.symlink?(path)
       end
 
       # Returns the value of the readlink method.
-      # 
+      #
       # @param  path [String] the path to a symlink
-      # 
+      #
       # @return [String] the path that the symlink points to
       def readlink(path)
         if windows?
@@ -34,11 +34,11 @@ class Chef
       end
 
       # Generates a command to execute that either uses the Unix cp
-      # command or the Windows copy command. 
+      # command or the Windows copy command.
       #
       # @param  source [String] the file to copy
       # @param  destination [String] the path to copy the source to
-      # 
+      #
       # @return [String] a useable command to copy a file
       def copy_command_for(source, destination)
         if windows?
@@ -62,7 +62,7 @@ class Chef
       #
       # @param  environment [String] the environment
       # @param  source [String] the deployment source to load configuration for
-      # 
+      #
       # @return [Chef::DataBagItem] the data bag item
       def data_bag_config_for(environment, source)
         data_bag_item = if Chef::Config[:solo]
@@ -155,7 +155,7 @@ class Chef
       # Nexus source.
       #
       # @param  location [String] the artifact_location
-      # 
+      #
       # @return [Boolean] true when the location is a colon-separated value
       def from_nexus?(location)
         !from_http?(location) && location.split(":").length > 2
@@ -173,9 +173,9 @@ class Chef
 
       # Returns true when the artifact is believed to be from an
       # http source.
-      # 
+      #
       # @param  location [String] the artifact_location
-      # 
+      #
       # @return [Boolean] true when the location matches http or https.
       def from_http?(location)
         location_of_type(location, %w(http https))
@@ -211,6 +211,15 @@ class Chef
         version.end_with?("-SNAPSHOT")
       end
 
+      # Convenience method for determining whether a String is "release"
+      #
+      # @param  version [String] the version of the configured artifact to check
+      #
+      # @return [Boolean] true when version matches (case-insensitive) "release"
+      def release?(version)
+        version.casecmp("release") == 0
+      end
+
       # Returns the currently deployed version of an artifact given that artifacts
       # installation directory by reading what directory the 'current' symlink
       # points to.
@@ -218,10 +227,10 @@ class Chef
       # indicated by the 'current' key is returned.
       #
       # @param  deploy_to_dir [String] the directory where an artifact is installed
-      # 
+      #
       # @example
       #   Chef::Artifact.get_current_deployed_version("/opt/my_deploy_dir") => "2.0.65"
-      # 
+      #
       # @return [String] the currently deployed version of the given artifact
       def get_current_deployed_version(deploy_to_dir)
 
@@ -238,12 +247,12 @@ class Chef
       end
 
       # Looks for the given data bag in the cache and if not found, will load a
-      # data bag item named for the chef_environment, '_wildcard', or the old 
+      # data bag item named for the chef_environment, '_wildcard', or the old
       # 'nexus' value.
       #
       # @param  environment [String] the environment
       # @param  data_bag [String] the data bag to load
-      # 
+      #
       # @return [Chef::Mash] the data bag item in Mash form
       def encrypted_data_bag_for(environment, data_bag)
         @encrypted_data_bags = {} unless @encrypted_data_bags
@@ -268,7 +277,7 @@ class Chef
       # Loads an entry from the encrypted_data_bags class variable.
       #
       # @param data_bag [String] the data bag to find
-      # 
+      #
       # @return [type] [description]
       def get_from_data_bags_cache(data_bag)
         encrypted_data_bags[data_bag]
@@ -280,15 +289,17 @@ class Chef
       #
       # @param  data_bag [String]
       # @param  data_bag_item [String]
-      # 
+      #
       # @raise [Chef::Artifact::DataBagEncryptionError] when the data bag cannot be decrypted
       #   or transformed into a Mash for some reason (Chef 10 vs Chef 11 data bag changes).
-      # 
+      #
       # @return [Chef::Mash]
       def encrypted_data_bag_item(data_bag, data_bag_item)
         Mash.from_hash(Chef::EncryptedDataBagItem.load(data_bag, data_bag_item).to_hash)
       rescue Net::HTTPServerException => e
         nil
+      rescue ArgumentError, Errno::ENOENT
+        Mash.from_hash(Chef::DataBagItem.load(data_bag, data_bag_item).to_hash)
       rescue NoMethodError
         raise DataBagEncryptionError.new
       end
