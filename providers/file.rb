@@ -3,7 +3,7 @@
 # Provider:: file
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,9 +40,12 @@ def load_current_resource
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
   elsif Chef::Artifact.from_s3?(@new_resource.location)
+
     chef_gem "aws-sdk" do
-      version "1.29.0"
+      version "2.1.32"
+      action :install
     end
+
   end
   @file_location = new_resource.location
   @file_path = new_resource.path
@@ -156,7 +159,7 @@ private
     execute_run_proc("artifact_file", new_resource, name)
   end
 
-  # Scrubs the file_location and returns the path to 
+  # Scrubs the file_location and returns the path to
   # the resource's checksum file.
   #
   # @return [String]
@@ -187,7 +190,7 @@ private
     ::File.exists?(cached_checksum)
   end
 
-  # Writes a file to file_cache_path. This file contains a SHA256 digest of the 
+  # Writes a file to file_cache_path. This file contains a SHA256 digest of the
   # artifact file. Returns the result of the file.puts command, which will be nil.
   #
   # @return [NilClass]
