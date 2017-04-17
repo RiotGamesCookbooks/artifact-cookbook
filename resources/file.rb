@@ -25,6 +25,8 @@ include Chef::Mixin::Securable
 actions :create
 default_action :create
 
+resource_name :artifact_file
+
 attribute :path, :kind_of => String, :name_attribute => true, :required => true
 attribute :location, :kind_of => String
 attribute :checksum, :kind_of  => String

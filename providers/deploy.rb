@@ -105,7 +105,7 @@ def load_current_resource
   @skip_manifest_check         = @new_resource.skip_manifest_check
   @remove_on_force             = @new_resource.remove_on_force
   @nexus_configuration_object  = @new_resource.nexus_configuration
-  @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
+  @current_resource            = Chef::Resource.resource_for_node(:artifact_deploy, node).new(@new_resource.name)
 
   @current_resource
 end

@@ -1,18 +1,20 @@
 source 'https://rubygems.org'
 
+gem 'cookbook-development', :git => 'https://github.com/RallySoftware-cookbooks/cookbook-development'
+gem 'minitest'
 gem 'rake'
 
 group :test do
-  gem 'foodcritic', '~> 3.0'
-  gem 'rubocop', '~> 0.19'
-  gem 'chefspec', '~> 3.4.0'
-  gem 'aws-sdk', '~> 2'
+  gem 'foodcritic'
+  gem 'rubocop'
+  gem 'chefspec'
+  gem 'aws-sdk'
 end
 
 group :integration do
   gem 'berkshelf'
-  gem 'test-kitchen', '~> 1.1'
-  gem 'kitchen-vagrant', '~> 0.13'
+  gem 'test-kitchen'
+  gem 'kitchen-vagrant'
 end
 
 group :releasing do
