@@ -3,7 +3,7 @@
 # Provider:: file
 #
 # Author:: Kyle Allan (<kallan@riotgames.com>)
-# 
+#
 # Copyright 2013, Riot Games
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 # limitations under the License.
 #
 require 'chef/mixin/create_path'
+require 'chef/mixin/enforce_ownership_and_permissions'
 
 attr_reader :file_location
 attr_reader :nexus_configuration
@@ -26,6 +27,7 @@ attr_reader :nexus_connection
 
 include Chef::Artifact::Helpers
 include Chef::Mixin::CreatePath
+include Chef::Mixin::EnforceOwnershipAndPermissions
 
 def load_current_resource
   create_cache_path
@@ -38,14 +40,17 @@ def load_current_resource
     @nexus_configuration = new_resource.nexus_configuration
     @nexus_connection = Chef::Artifact::Nexus.new(node, nexus_configuration)
   elsif Chef::Artifact.from_s3?(@new_resource.location)
+
     chef_gem "aws-sdk" do
-      version "1.29.0"
+      version "2.1.32"
+      action :install
     end
+
   end
   @file_location = new_resource.location
   @file_path = new_resource.path
 
-  @current_resource = Chef::Resource::ArtifactFile.new(@new_resource.name)
+  @current_resource = Chef::Resource.resource_for_node(:artifact_file, node).new(@new_resource.name)
   @current_resource
 end
 
@@ -55,6 +60,7 @@ action :create do
     if Chef::Artifact.from_s3?(file_location)
       unless ::File.exists?(new_resource.path) && checksum_valid?
         Chef::Artifact.retrieve_from_s3(node, file_location, new_resource.path)
+        enforce_ownership_and_permissions
         run_proc :after_download
       end
     elsif Chef::Artifact.from_nexus?(file_location)
@@ -70,6 +76,7 @@ action :create do
           if nexus_connection.get_artifact_filename(file_location) != ::File.basename(new_resource.path)
             ::File.rename(::File.join(::File.dirname(new_resource.path), nexus_connection.get_artifact_filename(file_location)), new_resource.path)
           end
+          enforce_ownership_and_permissions
           run_proc :after_download
         rescue NexusCli::PermissionsException => e
           msg = "The artifact server returned 401 (Unauthorized) when attempting to retrieve this artifact. Confirm that your credentials are correct."
@@ -78,6 +85,7 @@ action :create do
       end
     else
       remote_file_resource.run_action(:create)
+      enforce_ownership_and_permissions
     end
     raise Chef::Artifact::ArtifactChecksumError unless checksum_valid?
     write_checksum if Chef::Artifact.from_nexus?(file_location) || Chef::Artifact.from_s3?(file_location)
@@ -137,6 +145,10 @@ def remote_file_resource
   end
 end
 
+def manage_symlink_access?
+    false
+end
+
 private
   # A wrapper that calls Chef::Artifact:run_proc
   #
@@ -147,7 +159,7 @@ private
     execute_run_proc("artifact_file", new_resource, name)
   end
 
-  # Scrubs the file_location and returns the path to 
+  # Scrubs the file_location and returns the path to
   # the resource's checksum file.
   #
   # @return [String]
@@ -178,7 +190,7 @@ private
     ::File.exists?(cached_checksum)
   end
 
-  # Writes a file to file_cache_path. This file contains a SHA256 digest of the 
+  # Writes a file to file_cache_path. This file contains a SHA256 digest of the
   # artifact file. Returns the result of the file.puts command, which will be nil.
   #
   # @return [NilClass]

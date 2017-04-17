@@ -82,7 +82,8 @@ def load_current_resource
     end
 
     chef_gem "aws-sdk" do
-      version "1.29.0"
+      version "2.1.32"
+      action :install
     end
 
     @artifact_version = @new_resource.version
@@ -104,7 +105,7 @@ def load_current_resource
   @skip_manifest_check         = @new_resource.skip_manifest_check
   @remove_on_force             = @new_resource.remove_on_force
   @nexus_configuration_object  = @new_resource.nexus_configuration
-  @current_resource            = Chef::Resource::ArtifactDeploy.new(@new_resource.name)
+  @current_resource            = Chef::Resource.resource_for_node(:artifact_deploy, node).new(@new_resource.name)
 
   @current_resource
 end
